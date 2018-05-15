@@ -90,7 +90,7 @@ var app = new Vue({
 	el: '#app',
 	data: {
 		pageWidth: 384,
-		pageHeight: 1000,
+		pageHeight: 800,
 		camera: null,
 		activeObjects: [],
 		imageDialogVisible: false,
@@ -100,6 +100,10 @@ var app = new Vue({
 		printProgress: 0,
 		printingDialogVisible: false,
 		printingComplete: true,
+
+		/* i-text props */
+		textAlign:'left',
+		lineHeight: 1.16,
 		alignOptions: [{
 			value: 'left',
 			label: 'left'
@@ -143,6 +147,14 @@ var app = new Vue({
 			}));
 			const objects = this.canvas.getObjects();
 			this.canvas.setActiveObject(objects[objects.length-1]);
+		},
+		handleTextAlignChange: function(value){
+			this.textAlign = value;
+			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'textAlign': value});
+		},
+		handleLineHeightChange: function(value){
+			//this.lineHeight = value;
+			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'lineHeight': value});
 		},
 		handleFontSizeChange(e){
 			console.log(e);
@@ -314,13 +326,24 @@ var app = new Vue({
 			this.canvas.calcOffset();
 		});
 
-		this.canvas.on('after:render', this.postRender).on('selection:created', () => {
+		const handleActiveObjects = () => {
 			this.activeObjects = this.canvas.getActiveObjects();
-		}).on('selection:updated', () => {
-			this.activeObjects = this.canvas.getActiveObjects();
-		}).on('selection:cleared', () => {
-			this.activeObjects = this.canvas.getActiveObjects();
-		}).on('before:render', ()=>{
+			console.log(this.activeObjects);
+			if(this.activeObjects.length === 0) return;
+			switch(this.activeObjects[0].type){
+				case 'i-text':
+					this.textAlign = this.activeObjects[0].textAlign;
+					break;
+				default:
+					break;
+			}
+		};
+
+		this.canvas.on('after:render', this.postRender)
+	   .on('selection:created', handleActiveObjects)
+	   .on('selection:updated', handleActiveObjects)
+	   .on('selection:cleared', handleActiveObjects)
+	   .on('before:render', ()=>{
 			this.canvas.absolutePan(this.camera.getCenter());
 			this.canvas.setZoom(this.camera.getZoom());
 		});

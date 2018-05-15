@@ -63,20 +63,20 @@
 			</template>
 			<div class="app-object" v-for="object in activeObjects">
 				<template v-if="object.type == 'i-text'">
-					<el-input-number v-model="object.fontSize" :min="8" :max="72"></el-input-number>
-					<el-select v-model="object.textAlign" placeholder="Select">
+					<div class="app-object-prop"><el-input-number v-model="lineHeight" :min="0" :max="3" :step="0.02" @change="handleLineHeightChange"></el-input-number></div>
+					<div class="app-object-prop"><el-select v-model="textAlign" placeholder="Select" @change="handleTextAlignChange">
 						<el-option
 							v-for="item in alignOptions"
 							:key="item.value"
 							:label="item.label"
 							:value="item.value">
 						</el-option>
-					</el-select>
+					</el-select></div>
 				</template>
 				<template v-else>
-					<el-button icon="el-icon-refresh" v-on:click="handleRotateBtnClick">Rotate</el-button>
+					<div class="app-object-prop"><el-button icon="el-icon-refresh" v-on:click="handleRotateBtnClick">Rotate</el-button></div>
 				</template>
-				<el-button icon="el-icon-delete" v-on:click="handleRemoveBtnClick">Remove</el-button>
+				<div class="app-object-prop"><el-button icon="el-icon-delete" v-on:click="handleRemoveBtnClick">Remove</el-button></div>
 			</div>
 			<div class="app-filters">
 				<div class="app-filter">

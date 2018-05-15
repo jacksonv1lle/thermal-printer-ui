@@ -33,7 +33,19 @@ canvas{
 .app-filter {
 	padding: 20px 0;
 }
-
+.app-object {
+	margin: 0 -10px;
+	display: flex;
+	flex-wrap: wrap;
+}
+.app-object-prop {
+	padding: 0 10px 20px;
+	max-width: 50%;
+	box-sizing: border-box;
+}
+.app-object .el-input-number {
+	width: 100%;
+}
 .el-dialog__footer {
 	overflow: hidden;
 }
