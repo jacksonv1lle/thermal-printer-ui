@@ -351,6 +351,16 @@ var app = new Vue({
 		window.addEventListener('keydown', e => {
 			console.log(e.keyCode);
 		    switch(e.keyCode){
+		    	case 46: {
+		    		//Delete
+    				var activeObjects = this.canvas.getActiveObjects();
+		    		activeObjects.forEach(object=>{
+	    				if(!object.isEditing) {
+							this.canvas.remove(object);
+		    			}
+		    		});
+		    		break;
+		    	}
 		    	case 38: {
 		    		//up
 		    		let pos = this.camera.getCenter();
