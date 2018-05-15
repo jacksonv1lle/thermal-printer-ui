@@ -15,6 +15,11 @@ Camera.prototype.getZoom = function(){
 	return this.zoom;
 };
 
+let mouse = {
+	x: 0,
+	y: 0
+};
+
 function applyGreyScale(data, threshold) {
 	var buffer = data.data,
 		len = buffer.length,
@@ -125,7 +130,8 @@ var app = new Vue({
         }, {
 			value: 'justify-right',
 			label: 'justify-right'
-        }]
+        }],
+        isCtrlKeyPressed: false
 	},
 	methods: {
 		handleImageChange: function(e){
@@ -351,6 +357,10 @@ var app = new Vue({
 		window.addEventListener('keydown', e => {
 			console.log(e.keyCode);
 		    switch(e.keyCode){
+		    	case 17: {
+		    		this.isCtrlKeyPressed = true;
+		    		break;
+		    	}
 		    	case 46: {
 		    		//Delete
     				var activeObjects = this.canvas.getActiveObjects();
@@ -387,6 +397,26 @@ var app = new Vue({
 				}
 	    		default: break;
 		    }
+		});
+		window.addEventListener('keyup', e => {
+		    switch(e.keyCode){
+		    	case 17: {
+		    		this.isCtrlKeyPressed = false;
+		    		break;
+		    	}
+		    	default:
+		    		break;
+		    }
+		});
+		window.addEventListener('mousemove', e => {
+			if(this.isCtrlKeyPressed) {
+				const dx = e.clientX - mouse.x;
+				const dy = e.clientY - mouse.y;
+				const camPos = this.camera.getCenter();
+				this.camera.setCenter(new fabric.Point(camPos.x - dx, camPos.y - dy));	
+			}
+			mouse.x = e.clientX;
+			mouse.y = e.clientY;
 		});
 	}
 });

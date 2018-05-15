@@ -22,6 +22,9 @@ canvas{
 	overflow: hidden;
     background-color:#ddd;
 }
+.app-canvas.active {
+	cursor: move;
+}
 .app-controls {
 	width: 400px;
 	flex: 0 1 auto;
