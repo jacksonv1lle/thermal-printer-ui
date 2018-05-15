@@ -1,0 +1,24 @@
+{
+  "name": "thermal-printer-ui",
+  "version": "1.0.0",
+  "description": "Client-side thermal printer page UI with Fabric.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jacksonv1lle/thermal-printer-ui.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jacksonv1lle/thermal-printer-ui/issues"
+  },
+  "homepage": "https://github.com/jacksonv1lle/thermal-printer-ui#readme",
+  "devDependencies": {},
+  "dependencies": {
+    "express": "^4.16.3"
+  }
+}

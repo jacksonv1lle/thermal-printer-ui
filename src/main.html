@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Printer UI</title>
+	<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+	<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+	<div id="app" class="app">
+		<div class="app-canvas">
+			<canvas ref="canvas"></canvas>
+		</div>
+		<div class="app-controls">
+			<!--<el-upload
+				class="app-upload"
+				ref="upload"
+				:file-list="fileList"
+				:auto-upload="false">
+				<el-button slot="trigger" size="small" type="primary">select file</el-button>
+				<div class="el-upload__tip" slot="tip">jpg/png files with a size less than 500kb</div>
+			</el-upload>-->
+			<template>
+				<el-button-group>
+					<el-button icon="el-icon-edit" v-on:click="handleTextBtnClick">Text</el-button>
+					<el-button icon="el-icon-picture" v-on:click="imageDialogVisible = true">Image</el-button>
+					<el-button type="primary" icon="el-icon-printer" v-on:click="handlePrintBtnClick">Print</el-button>
+				</el-button-group>
+				<el-dialog
+					title="Add an Image"
+					:visible.sync="imageDialogVisible"
+					width="30%"
+					:show-close="false">
+					<el-upload
+						:auto-upload="false"
+						ref="upload">
+						<el-button size="small" type="primary">Click to upload</el-button>
+					</el-upload>
+					<span slot="footer" class="dialog-footer">
+						<el-button @click="handleImageDialogCancel">Cancel</el-button>
+						<el-button type="primary" @click="handleImageDialogConfirm">Confirm</el-button>
+					</span>
+				</el-dialog>
+				<el-dialog
+					title="Printing"
+					:visible.sync="printingDialogVisible"
+					width="30%"
+					:close-on-click-modal="false"
+					:close-on-press-escape="false"
+					:show-close="false">
+					<template v-if="printStatus == 2">
+						<el-progress type="circle" :percentage="printProgress" status="success"></el-progress>
+					</template>
+					<template v-else>
+						<el-progress type="circle" :percentage="printProgress"></el-progress>
+					</template>
+					<span slot="footer" class="dialog-footer">
+						<el-button @click="handlePrintDialogCancel">Cancel</el-button>
+						<template v-if="printStatus == 2">
+							<el-button type="primary" @click="handlePrintDialogCancel">Dismiss</el-button>
+						</template>
+					</span>
+				</el-dialog>
+			</template>
+			<div class="app-object" v-for="object in activeObjects">
+				<template v-if="object.type == 'i-text'">
+					<el-input-number v-model="object.fontSize" :min="8" :max="72"></el-input-number>
+					<el-select v-model="object.textAlign" placeholder="Select">
+						<el-option
+							v-for="item in alignOptions"
+							:key="item.value"
+							:label="item.label"
+							:value="item.value">
+						</el-option>
+					</el-select>
+				</template>
+				<template v-else>
+					<el-button icon="el-icon-refresh" v-on:click="handleRotateBtnClick">Rotate</el-button>
+				</template>
+				<el-button icon="el-icon-delete" v-on:click="handleRemoveBtnClick">Remove</el-button>
+			</div>
+			<div class="app-filters">
+				<div class="app-filter">
+					<el-switch v-model="greyScaleEnabled" active-text="Grey scale"></el-switch>
+					<template v-if="greyScaleEnabled">
+						<el-slider v-model="threshold" :min="0" :max="255"></el-slider>
+					</template>
+				</div>
+			</div>
+		</div>
+	</div>
+	<script src="https://cdn.jsdelivr.net/npm/vue"></script>
+	<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+	<script src='https://cdnjs.cloudflare.com/ajax/libs/fabric.js/2.2.4/fabric.min.js'></script>
+	<script src="script.js"></script>
+</body>
+</html>
