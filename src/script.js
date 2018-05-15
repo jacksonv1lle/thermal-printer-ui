@@ -96,7 +96,8 @@ var app = new Vue({
 	data: {
 		pageWidth: 384,
 		pageHeight: 800,
-		camera: null,
+		camera: new Camera(),
+		zoom: 1,
 		activeObjects: [],
 		imageDialogVisible: false,
 		threshold: 127,
@@ -140,7 +141,7 @@ var app = new Vue({
 		getPageData:function(){
 			var ctx = this.canvas.contextContainer,
 				center = this.camera.getCenter();
-			var imageData = ctx.getImageData(-center.x, -center.y, this.pageWidth, this.pageHeight);
+			var imageData = ctx.getImageData(-center.x, -center.y, this.pageWidth*this.camera.zoom, this.pageHeight*this.camera.zoom);
 			return imageData;
 		},
 		handleTextBtnClick: function(){
@@ -221,7 +222,7 @@ var app = new Vue({
 			if(this.greyScaleEnabled) data = applyGreyScale(data, this.threshold);
 			var ctx = this.canvas.contextContainer;
 			var center = this.camera.getCenter();
-			ctx.putImageData(data, -center.x, -center.y, 0, 0, this.pageWidth, this.pageHeight);
+			ctx.putImageData(data, -center.x, -center.y, 0, 0, this.pageWidth*this.camera.zoom, this.pageHeight*this.camera.zoom);
 		},
 		handleImageDialogConfirm: function(){
 			const upload = this.$refs.upload;
@@ -322,7 +323,6 @@ var app = new Vue({
 		this.canvas.setHeight(_container.offsetHeight);
 		this.canvas.calcOffset();
 
-		this.camera = new Camera();
 		centerViewport();
 		
 

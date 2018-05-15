@@ -31,23 +31,22 @@ canvas{
 	padding: 40px;
 	box-sizing: border-box;
 }
-.el-button-group,
-.app-object,
-.app-filter {
-	padding: 20px 0;
+.app-block {
+	padding: 5px 0;
 }
-.app-object {
-	margin: 0 -10px;
+.app-block {
+	margin: -10px;
 	display: flex;
 	flex-wrap: wrap;
 }
-.app-object-prop {
-	padding: 0 10px 20px;
-	max-width: 50%;
+.app-item {
+	padding: 10px;
+	/*max-width: 50%;*/
 	box-sizing: border-box;
+	flex: 1;
 }
-.app-object .el-input-number {
-	width: 100%;
+.app-block .el-input-number {
+	width: 130px;
 }
 .el-dialog__footer {
 	overflow: hidden;
