@@ -92,6 +92,34 @@ function getPageData(fabric_canvas){
 	var imageData = ctx.getImageData(0, 0, fabric_canvas.width, fabric_canvas.height);
 	return imageData;
 }
+function getGoogleFonts(){
+	var stylesheets = document.querySelectorAll('link[rel=\'stylesheet\']');
+	var fontList = [];
+	Array.prototype.forEach.call(stylesheets, (stylesheet)=>{
+		var href= stylesheet.getAttribute('href');
+		var matches = href.match(/family=(.*)/);
+		if(matches && matches.length > 1) {
+			var fonts = matches[1];
+			var _fontDiv = document.createElement('div');
+			var _style = document.createElement('style');
+			document.body.appendChild(_fontDiv);
+			var style = '';
+			fontList = fonts.split('|').map(font=>{
+				parsedFont=font.replace('+', ' ');
+				var _span = document.createElement('span');
+				_span.style.fontFamily = parsedFont;
+				_fontDiv.appendChild(_span);
+				style += '.font-'+font + '{font-family:' + parsedFont + '}';
+
+				return font
+			});
+			_style.innerHTML = style;
+			document.head.appendChild(_style);
+			//document.body.removeChild(_fontDiv);
+		}
+	});
+	return fontList;
+}
 const PRINT_STATUS = {
 	IDLE: 0,
 	PRINTING: 1,
@@ -138,6 +166,8 @@ var app = new Vue({
 			value: 'justify-right',
 			label: 'justify-right'
         }],
+        fontFamily: 'Helvetica',
+        fontFamilyList: [],
         isCtrlKeyPressed: false
 	},
 	methods: {
@@ -186,6 +216,10 @@ var app = new Vue({
 					this.canvas.remove(object);
 				});
 			}
+		},
+		handleFontFamilyChange: function(value){
+			this.fontFamily = value;
+			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'fontFamily': value});
 		},
 		handleRotateBtnClick: function(){
 			var obj = this.canvas.getActiveObject();
@@ -327,6 +361,11 @@ var app = new Vue({
 	mounted: function(){
 		var _canvas = this.$refs.canvas;
 		var _container = _canvas.parentNode;
+		fontList = getGoogleFonts();
+		if(fontList) {
+			console.log(fontList);
+			this.fontFamilyList = fontList.map(font=>{return {value:font,label:font}});
+		}
 		this.canvas = new fabric.Canvas(_canvas,{
 			selectionLineWidth: 2,
 			snapAngle: 45,

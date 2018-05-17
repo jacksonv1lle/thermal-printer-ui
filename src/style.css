@@ -42,7 +42,7 @@ canvas{
 }
 .app-item {
 	padding: 10px;
-	/*max-width: 50%;*/
+	min-width: 50%;
 	box-sizing: border-box;
 	flex: 1;
 }

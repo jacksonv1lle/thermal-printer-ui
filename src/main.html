@@ -4,6 +4,7 @@
 	<title>Printer UI</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+	<link href="https://fonts.googleapis.com/css?family=Indie+Flower|Lato|Lobster|Montserrat|Open+Sans|Oswald|PT+Serif|Pacifico|Raleway|Roboto" rel="stylesheet">
 	<link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -63,6 +64,15 @@
 							:key="item.value"
 							:label="item.label"
 							:value="item.value">
+						</el-option>
+					</el-select></div>
+					<div class="app-item"><el-select v-model="fontFamily" placeholder="Select" @change="handleFontFamilyChange">
+						<el-option
+							v-for="item in fontFamilyList"
+							:key="item.value"
+							:label="item.label"
+							:value="item.value">
+							<span :class="'font-'+item.value">{{ item.label }}</span>
 						</el-option>
 					</el-select></div>
 				</template>
