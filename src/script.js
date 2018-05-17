@@ -1,6 +1,7 @@
 var Camera = function(centerPoint){
 	this.center = centerPoint || new fabric.Point(0,0);
 	this.zoom = 1;
+	this.angle = 45;
 };
 Camera.prototype.setCenter = function(center){
 	this.center = center;
@@ -36,6 +37,7 @@ function applyGreyScale(data, threshold) {
 }
 function sendData(data) {
 	return new Promise(function(resolve, reject) {
+		setTimeout(function(){resolve()},500);return;
 		var formData = new FormData();
 		formData.append('data', '{\'data\':' + JSON.stringify(data) + '}');
 		var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
@@ -85,6 +87,11 @@ function getByteArrayChunks(data){
 		str += temparray.join(',');
 	}
 	return chunks;	
+}
+function getPageData(fabric_canvas){
+	var ctx = fabric_canvas.contextContainer;
+	var imageData = ctx.getImageData(0, 0, fabric_canvas.width, fabric_canvas.height);
+	return imageData;
 }
 const PRINT_STATUS = {
 	IDLE: 0,
@@ -253,10 +260,7 @@ var app = new Vue({
 		handleRemove: function(){console.log('remove')},
 		handlePrintBtnClick: function(e){
 			e.preventDefault();
-			var pageData = this.getPageData();
-			if (pageData) {
-				this.print(pageData);
-			}
+			this.print();
 		},
 		handlePrintDialogCancel: function(){
 			this.printStatus = PRINT_STATUS.IDLE;
@@ -264,29 +268,45 @@ var app = new Vue({
 			this.printingDialogVisible = false;
 		},
 		print: function(){
-			this.canvas.discardActiveObject();
-			this.canvas.requestRenderAll();
-			this.printStatus = PRINT_STATUS.PRINTING;
-			this.printingDialogVisible = true;
-			var data = this.getPageData();
-			console.log(data);
-			var chunks = getByteArrayChunks(data);
-			console.log(chunks);
-			this.printProgress = 0;
-			const printChunk = async(i) => {
-				this.printProgress = Math.ceil((i / chunks.length) * 100);
-				if (i > chunks.length - 1 || this.printStatus === PRINT_STATUS.IDLE || this.printStatus === PRINT_STATUS.COMPLETE) {
-					this.printStatus = PRINT_STATUS.COMPLETE;
-					return;
-				}
-				try {
-					var res = await sendData(Array.from(chunks[i]));
-					printChunk(i + 1);
-				} catch (e) {
-					console.log('There was a problem', e);
-				}
-			};
-			printChunk(0);
+			//this.canvas.discardActiveObject();
+			//this.canvas.requestRenderAll();
+			const json = this.canvas.toJSON();
+			let _print_canvas_wrap = document.createElement('div');
+			_print_canvas_wrap.style.display = "none";
+			let _print_canvas = document.createElement('canvas');
+			_print_canvas.setAttribute('width', this.pageWidth);
+			_print_canvas.setAttribute('height', this.pageHeight);
+			_print_canvas_wrap.appendChild(_print_canvas);
+			document.body.appendChild(_print_canvas_wrap);
+			let print_ctx = _print_canvas.getContext('2d');
+
+			let print_canvas = new fabric.Canvas(_print_canvas,{});
+
+			print_canvas.loadFromJSON(json, () => {
+				this.printStatus = PRINT_STATUS.PRINTING;
+				this.printingDialogVisible = true;
+				var data = print_ctx.getImageData(0, 0, this.pageWidth, this.pageHeight);
+				data = applyGreyScale(data, this.threshold);
+				print_ctx.putImageData(data, 0, 0, 0, 0, this.pageWidth, this.pageHeight);
+				console.log(data);
+				var chunks = getByteArrayChunks(data);
+				console.log(chunks);
+				this.printProgress = 0;
+				const printChunk = async(i) => {
+					this.printProgress = Math.ceil((i / chunks.length) * 100);
+					if (i > chunks.length - 1 || this.printStatus === PRINT_STATUS.IDLE || this.printStatus === PRINT_STATUS.COMPLETE) {
+						this.printStatus = PRINT_STATUS.COMPLETE;
+						return;
+					}
+					try {
+						var res = await sendData(Array.from(chunks[i]));
+						printChunk(i + 1);
+					} catch (e) {
+						console.log('There was a problem', e);
+					}
+				};
+				printChunk(0);
+			});
 		}
 	},
 	mounted: function(){
@@ -323,7 +343,7 @@ var app = new Vue({
 		this.canvas.setHeight(_container.offsetHeight);
 		this.canvas.calcOffset();
 
-		centerViewport();
+		//centerViewport();
 		
 
 		window.addEventListener('resize', e => {
@@ -352,6 +372,7 @@ var app = new Vue({
 	   .on('before:render', ()=>{
 			this.canvas.absolutePan(this.camera.getCenter());
 			this.canvas.setZoom(this.camera.getZoom());
+			this.canvas.set({angle: 45});
 		});
 
 		window.addEventListener('keydown', e => {
