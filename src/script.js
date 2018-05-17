@@ -1,7 +1,6 @@
 var Camera = function(centerPoint){
 	this.center = centerPoint || new fabric.Point(0,0);
 	this.zoom = 1;
-	this.angle = 45;
 };
 Camera.prototype.setCenter = function(center){
 	this.center = center;
@@ -256,11 +255,18 @@ var app = new Vue({
 				fr.readAsDataURL(files[0].raw);
 			}
 		},
+		handleCenterBtnClick: function(){
+			this.centerViewport();
+		},
 		handleChange: function(){console.log('change')},
 		handleRemove: function(){console.log('remove')},
 		handlePrintBtnClick: function(e){
 			e.preventDefault();
 			this.print();
+		},
+		handleScaleChange: function(){
+			console.log('test');
+			this.centerViewport();
 		},
 		handlePrintDialogCancel: function(){
 			this.printStatus = PRINT_STATUS.IDLE;
@@ -280,7 +286,9 @@ var app = new Vue({
 			document.body.appendChild(_print_canvas_wrap);
 			let print_ctx = _print_canvas.getContext('2d');
 
-			let print_canvas = new fabric.Canvas(_print_canvas,{});
+			let print_canvas = new fabric.Canvas(_print_canvas,{
+				enableRetinaScaling: false
+			});
 
 			print_canvas.loadFromJSON(json, () => {
 				this.printStatus = PRINT_STATUS.PRINTING;
@@ -307,6 +315,13 @@ var app = new Vue({
 				};
 				printChunk(0);
 			});
+		},
+		centerViewport: function(){
+			const left = this.pageWidth / 2,
+				  top = this.pageHeight / 2,
+				  center = this.canvas.getCenter(),
+				  zoom = this.camera.getZoom();
+			this.camera.setCenter(new fabric.Point(-this.canvas.width/2 + left * (zoom) , -this.canvas.height/2 + top * (zoom)));
 		}
 	},
 	mounted: function(){
@@ -315,7 +330,8 @@ var app = new Vue({
 		this.canvas = new fabric.Canvas(_canvas,{
 			selectionLineWidth: 2,
 			snapAngle: 45,
-			imageSmoothingEnabled: true
+			imageSmoothingEnabled: true,
+			enableRetinaScaling: false
 		});
 		var page = new fabric.Rect({
 			left: 0,
@@ -328,23 +344,15 @@ var app = new Vue({
 			excludeFromExport: true
 		});
 
-
-		var centerViewport = () => {
-			const left = this.pageWidth / 2,
-				  top = this.pageHeight / 2,
-				  center = this.canvas.getCenter(),
-				  zoom = this.camera.getZoom();
-			this.camera.setCenter(new fabric.Point(-this.canvas.width/2 + left * (zoom) , -this.canvas.height/2 + top * (zoom)));
-		};
-
 		this.canvas.add(page);
 
 		this.canvas.setWidth(_container.offsetWidth);
 		this.canvas.setHeight(_container.offsetHeight);
 		this.canvas.calcOffset();
 
-		//centerViewport();
-		
+		this.centerViewport();
+
+		//this.canvas.setViewportTransform([ 1, 0, 0, 1, 0, 0 ]);
 
 		window.addEventListener('resize', e => {
 			this.canvas.setWidth(_container.offsetWidth);
@@ -370,9 +378,8 @@ var app = new Vue({
 	   .on('selection:updated', handleActiveObjects)
 	   .on('selection:cleared', handleActiveObjects)
 	   .on('before:render', ()=>{
-			this.canvas.absolutePan(this.camera.getCenter());
 			this.canvas.setZoom(this.camera.getZoom());
-			this.canvas.set({angle: 45});
+			this.canvas.absolutePan(this.camera.getCenter());
 		});
 
 		window.addEventListener('keydown', e => {
@@ -429,15 +436,40 @@ var app = new Vue({
 		    		break;
 		    }
 		});
-		window.addEventListener('mousemove', e => {
-			if(this.isCtrlKeyPressed) {
-				const dx = e.clientX - mouse.x;
-				const dy = e.clientY - mouse.y;
-				const camPos = this.camera.getCenter();
-				this.camera.setCenter(new fabric.Point(camPos.x - dx, camPos.y - dy));	
-			}
+		const handleMove = e => {
+			if(!this.isCtrlKeyPressed) return;
+
+			const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+			const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+			const dx = clientX - mouse.x;
+			const dy = clientY - mouse.y;
+			const camPos = this.camera.getCenter();
+			this.camera.setCenter(new fabric.Point(camPos.x - dx, camPos.y - dy));
+		};
+		window.addEventListener('mousemove', e =>{
+			handleMove(e);
 			mouse.x = e.clientX;
 			mouse.y = e.clientY;
 		});
+
+		window.addEventListener("touchstart", (e)=>{
+			console.log(e);
+			if(e.touches && e.touches.length == 2) {
+				mouse.x = e.touches[0].clientX;
+				mouse.y = e.touches[0].clientY;
+				this.isCtrlKeyPressed = true;
+			}
+		}, false);
+		window.addEventListener("touchmove", e=>{
+			handleMove(e);
+			mouse.x = e.touches[0].clientX;
+			mouse.y = e.touches[0].clientY;
+		}, false);
+		window.addEventListener("touchend", e=>{
+			if(e.touches && e.touches.length != 2) {
+				this.isCtrlKeyPressed = false;
+			}
+		}, false);
 	}
 });

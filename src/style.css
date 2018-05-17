@@ -13,6 +13,7 @@ canvas{
 
 .app {
 	display: flex;
+	flex-direction: column;
 }
 .app-canvas,
 .app-controls {
@@ -48,10 +49,27 @@ canvas{
 .app-block .el-input-number {
 	width: 130px;
 }
+.el-dialog__wrapper {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+.el-dialog {
+	max-width: 400px;
+	width: auto;
+	flex: 1 0 auto;
+	margin: 20px !important;
+}
 .el-dialog__footer {
 	overflow: hidden;
 }
 .dialog-footer {
 	display: flex;
 	justify-content: flex-end;
+}
+@media screen and (min-width: 900px) {
+	.app {
+		display: flex;
+		flex-direction: row;
+	}
 }
