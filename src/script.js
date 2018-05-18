@@ -167,7 +167,7 @@ var app = new Vue({
 			label: 'justify-right'
         }],
         fontFamily: 'Helvetica',
-        fontFamilyList: [],
+        fontFamilyList: [{label: 'Helvetica', value: 'Helvetica'}],
         isCtrlKeyPressed: false
 	},
 	methods: {
@@ -187,6 +187,7 @@ var app = new Vue({
 				left: 0,
 				fontSize: 20,
 				fontFamily: 'Helvetica',
+				backgroundColor: '#fff'
 			}));
 			const objects = this.canvas.getObjects();
 			this.canvas.setActiveObject(objects[objects.length-1]);
@@ -361,10 +362,10 @@ var app = new Vue({
 	mounted: function(){
 		var _canvas = this.$refs.canvas;
 		var _container = _canvas.parentNode;
-		fontList = getGoogleFonts();
-		if(fontList) {
-			console.log(fontList);
-			this.fontFamilyList = fontList.map(font=>{return {value:font,label:font}});
+		googleFonts = getGoogleFonts();
+		if(googleFonts) {
+			googleFonts = googleFonts.map(font=>{return {value:font,label:font}});
+			this.fontFamilyList = this.fontFamilyList.concat(googleFonts);
 		}
 		this.canvas = new fabric.Canvas(_canvas,{
 			selectionLineWidth: 2,
@@ -509,6 +510,11 @@ var app = new Vue({
 			if(e.touches && e.touches.length != 2) {
 				this.isCtrlKeyPressed = false;
 			}
+		}, false);
+		window.addEventListener("mousewheel", e=>{
+			console.log(e.deltaY);
+			const camPos = this.camera.getCenter();
+			this.camera.setCenter(new fabric.Point(camPos.x - e.deltaX, camPos.y - e.deltaY));
 		}, false);
 	}
 });

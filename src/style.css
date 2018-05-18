@@ -34,11 +34,14 @@ canvas{
 }
 .app-block {
 	padding: 5px 0;
-}
-.app-block {
 	margin: -10px;
 	display: flex;
 	flex-wrap: wrap;
+}
+.app-group {
+	border: 1px solid #e3dfdf;
+	padding: 20px;
+	margin-bottom: 20px;
 }
 .app-item {
 	padding: 10px;
@@ -46,8 +49,13 @@ canvas{
 	box-sizing: border-box;
 	flex: 1;
 }
+.app-item-label {
+	font-size: 12px;
+    padding-bottom: 5px;
+    color: #555;
+}
 .app-block .el-input-number {
-	width: 130px;
+	width: auto;
 }
 .el-dialog__wrapper {
 	display: flex;
