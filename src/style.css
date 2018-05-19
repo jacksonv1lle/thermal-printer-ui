@@ -11,26 +11,31 @@ canvas{
     height: 100%;
 }
 
-.app {
-	display: flex;
-	flex-direction: column;
-}
-.app-canvas,
-.app-controls {
-	flex: 1 1 auto;
-}
 .app-canvas {
 	overflow: hidden;
     background-color:#ddd;
+    height: 100%;
 }
 .app-canvas.active {
 	cursor: move;
 }
 .app-controls {
-	width: 400px;
-	flex: 0 1 auto;
-	padding: 40px;
-	box-sizing: border-box;
+    width: 100%;
+    padding: 80px 0px 0px;
+    box-sizing: border-box;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 50%;
+    background: #fff;
+    border-top: 1px solid #ddd;
+    display: flex;
+}
+.app-controls-inner {
+	padding: 0 40px;
+	overflow: auto;
+	width: 100%;
 }
 .app-block {
 	padding: 5px 0;
@@ -75,9 +80,43 @@ canvas{
 	display: flex;
 	justify-content: flex-end;
 }
+.app-toggle {
+	position: absolute;
+	top: 20px;
+	left: 50%;
+	margin-left: -25px;
+}
+.app-toggle button {
+	margin: 0;
+}
+.app-controls.closed .app-toggle button,
+.app-toggle button:first-child {
+	display: none;
+}
+.app-controls.closed .app-toggle button:first-child {
+	display: block;
+}
+.app-controls.closed .app-controls-inner{
+	display: none;
+}
 @media screen and (min-width: 900px) {
 	.app {
 		display: flex;
 		flex-direction: row;
+	}
+	.app-canvas {
+	    flex: 1 1 auto;
+	}
+	.app-controls {
+		width: 400px;
+		flex: 0 1 auto;
+		position: static;
+		max-height: 100%;
+	}
+	.app-controls.closed .app-controls-inner {
+		display: block;
+	}
+	.app-toggle {
+		display: none;
 	}
 }

@@ -36,9 +36,9 @@ function applyGreyScale(data, threshold) {
 }
 function sendData(data) {
 	return new Promise(function(resolve, reject) {
-		setTimeout(function(){resolve()},500);return;
+		/*setTimeout(function(){resolve()},500);return;*/
 		var formData = new FormData();
-		formData.append('data', '{\'data\':' + JSON.stringify(data) + '}');
+		formData.append("data", "{'data':" + JSON.stringify(data) + "}");
 		var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
 		xhr.open('POST', '/print');
 		xhr.onreadystatechange = function() {
@@ -93,7 +93,7 @@ function getPageData(fabric_canvas){
 	return imageData;
 }
 function getGoogleFonts(){
-	var stylesheets = document.querySelectorAll('link[rel=\'stylesheet\']');
+	var stylesheets = document.querySelectorAll("link[rel='stylesheet']");
 	var fontList = [];
 	Array.prototype.forEach.call(stylesheets, (stylesheet)=>{
 		var href= stylesheet.getAttribute('href');
@@ -140,6 +140,7 @@ var app = new Vue({
 		printProgress: 0,
 		printingDialogVisible: false,
 		printingComplete: true,
+		controlsOpen: false,
 
 		/* i-text props */
 		textAlign:'left',
@@ -203,6 +204,9 @@ var app = new Vue({
 		handleFontSizeChange(e){
 			console.log(e);
 		},
+		handleToggleClick(e){
+			this.controlsOpen = !this.controlsOpen;
+		},
 		handleImageDialogCancel: function(e){
 			const upload = this.$refs.upload;
 			this.imageDialogVisible = false;
@@ -221,6 +225,14 @@ var app = new Vue({
 		handleFontFamilyChange: function(value){
 			this.fontFamily = value;
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'fontFamily': value});
+		},
+		handleInvertBtnClick: function(){
+			if(this.activeObjects[0] && this.activeObjects[0].type == 'i-text') {
+				let color = this.activeObjects[0].backgroundColor == '#fff' ? '#fff' : '#000';
+				console.log(color);
+				let backgroundColor = color == '#fff' ? '#000' : '#fff';
+				this.activeObjects[0].set({'backgroundColor': backgroundColor, 'fill': color});
+			}
 		},
 		handleRotateBtnClick: function(){
 			var obj = this.canvas.getActiveObject();
@@ -511,10 +523,10 @@ var app = new Vue({
 				this.isCtrlKeyPressed = false;
 			}
 		}, false);
-		window.addEventListener("mousewheel", e=>{
+		_container.addEventListener("mousewheel", e=>{
 			console.log(e.deltaY);
 			const camPos = this.camera.getCenter();
-			this.camera.setCenter(new fabric.Point(camPos.x - e.deltaX, camPos.y - e.deltaY));
+			this.camera.setCenter(new fabric.Point(camPos.x + e.deltaX, camPos.y + e.deltaY));
 		}, false);
 	}
 });

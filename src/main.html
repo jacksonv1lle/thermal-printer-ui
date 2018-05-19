@@ -12,126 +12,137 @@
 		<div class="app-canvas" v-bind:class="{ active: isCtrlKeyPressed }">
 			<canvas ref="canvas"></canvas>
 		</div>
-		<div class="app-controls">
-			<div class="app-group">
-				<div class="app-block">
-						<div class="app-item">
-							<el-button-group>
-								<el-button icon="el-icon-edit" v-on:click="handleTextBtnClick">Text</el-button>
-								<el-button icon="el-icon-picture" v-on:click="imageDialogVisible = true">Image</el-button>
-								<el-button type="primary" icon="el-icon-printer" v-on:click="handlePrintBtnClick">Print</el-button>
-							</el-button-group>
-						</div>
-						<el-dialog
-							title="Add an Image"
-							:visible.sync="imageDialogVisible"
-							:show-close="false">
-							<el-upload
-								:auto-upload="false"
-								ref="upload">
-								<el-button size="small" type="primary">Click to upload</el-button>
-							</el-upload>
-							<span slot="footer" class="dialog-footer">
-								<el-button @click="handleImageDialogCancel">Cancel</el-button>
-								<el-button type="primary" @click="handleImageDialogConfirm">Confirm</el-button>
-							</span>
-						</el-dialog>
-						<el-dialog
-							title="Printing"
-							:visible.sync="printingDialogVisible"
-							:close-on-click-modal="false"
-							:close-on-press-escape="false"
-							:show-close="false">
-							<template v-if="printStatus == 2">
-								<el-progress type="circle" :percentage="printProgress" status="success"></el-progress>
+
+		<div v-bind:class="{ 'app-controls': controlsOpen, 'app-controls closed': !controlsOpen  }">
+			<div class="app-toggle">
+				<el-button icon="el-icon-arrow-up" circle @click="handleToggleClick"></el-button>
+				<el-button icon="el-icon-arrow-down" circle @click="handleToggleClick"></el-button>
+			</div>
+			<div class="app-controls-inner">
+				<div class="app-group">
+					<div class="app-block">
+							<div class="app-item">
+								<el-button-group>
+									<el-button icon="el-icon-edit" v-on:click="handleTextBtnClick">Text</el-button>
+									<el-button icon="el-icon-picture" v-on:click="imageDialogVisible = true">Image</el-button>
+									<el-button type="primary" icon="el-icon-printer" v-on:click="handlePrintBtnClick">Print</el-button>
+								</el-button-group>
+							</div>
+							<el-dialog
+								title="Add an Image"
+								:visible.sync="imageDialogVisible"
+								:show-close="false">
+								<el-upload
+									:auto-upload="false"
+									ref="upload">
+									<el-button size="small" type="primary">Click to upload</el-button>
+								</el-upload>
+								<span slot="footer" class="dialog-footer">
+									<el-button @click="handleImageDialogCancel">Cancel</el-button>
+									<el-button type="primary" @click="handleImageDialogConfirm">Confirm</el-button>
+								</span>
+							</el-dialog>
+							<el-dialog
+								title="Printing"
+								:visible.sync="printingDialogVisible"
+								:close-on-click-modal="false"
+								:close-on-press-escape="false"
+								:show-close="false">
+								<template v-if="printStatus == 2">
+									<el-progress type="circle" :percentage="printProgress" status="success"></el-progress>
+								</template>
+								<template v-else>
+									<el-progress type="circle" :percentage="printProgress"></el-progress>
+								</template>
+								<span slot="footer" class="dialog-footer">
+									<el-button @click="handlePrintDialogCancel">Cancel</el-button>
+									<template v-if="printStatus == 2">
+										<el-button type="primary" @click="handlePrintDialogCancel">Dismiss</el-button>
+									</template>
+								</span>
+							</el-dialog>
+					</div>
+				</div>
+				<template v-if="activeObjects.length > 0">
+					<div class="app-group">
+						<div class="app-block" v-for="object in activeObjects">
+							<template v-if="object.type == 'i-text'">
+								<div class="app-item">
+									<div class="app-item-label">Line height</div>
+									<el-input-number v-model="lineHeight" :min="0" :max="3" :step="0.02" @change="handleLineHeightChange"></el-input-number>
+								</div>
+								<div class="app-item">
+									<div class="app-item-label">Align text</div>
+									<el-select v-model="textAlign" placeholder="Select" @change="handleTextAlignChange">
+										<el-option
+											v-for="item in alignOptions"
+											:key="item.value"
+											:label="item.label"
+											:value="item.value">
+										</el-option>
+									</el-select>
+								</div>
+								<div class="app-item">
+									<div class="app-item-label">Font family</div>
+									<el-select v-model="fontFamily" placeholder="Select" @change="handleFontFamilyChange">
+										<el-option
+											v-for="item in fontFamilyList"
+											:key="item.value"
+											:label="item.label"
+											:value="item.value">
+											<span :class="'font-'+item.value">{{ item.label }}</span>
+										</el-option>
+									</el-select>
+								</div>
+								<div class="app-item">
+									<div class="app-item-label">Colour</div>
+									<el-button v-on:click="handleInvertBtnClick">Invert</el-button>
+								</div>
 							</template>
 							<template v-else>
-								<el-progress type="circle" :percentage="printProgress"></el-progress>
+								<div class="app-item">
+									<el-button icon="el-icon-refresh" v-on:click="handleRotateBtnClick">Rotate</el-button>
+								</div>
 							</template>
-							<span slot="footer" class="dialog-footer">
-								<el-button @click="handlePrintDialogCancel">Cancel</el-button>
-								<template v-if="printStatus == 2">
-									<el-button type="primary" @click="handlePrintDialogCancel">Dismiss</el-button>
-								</template>
-							</span>
-						</el-dialog>
-				</div>
-			</div>
-			<template v-if="activeObjects.length > 0">
-				<div class="app-group">
-					<div class="app-block" v-for="object in activeObjects">
-						<template v-if="object.type == 'i-text'">
-							<div class="app-item">
-								<div class="app-item-label">Line height</div>
-								<el-input-number v-model="lineHeight" :min="0" :max="3" :step="0.02" @change="handleLineHeightChange"></el-input-number>
-							</div>
-							<div class="app-item">
-								<div class="app-item-label">Align text</div>
-								<el-select v-model="textAlign" placeholder="Select" @change="handleTextAlignChange">
-									<el-option
-										v-for="item in alignOptions"
-										:key="item.value"
-										:label="item.label"
-										:value="item.value">
-									</el-option>
-								</el-select>
-							</div>
-							<div class="app-item">
-								<div class="app-item-label">Font family</div>
-								<el-select v-model="fontFamily" placeholder="Select" @change="handleFontFamilyChange">
-									<el-option
-										v-for="item in fontFamilyList"
-										:key="item.value"
-										:label="item.label"
-										:value="item.value">
-										<span :class="'font-'+item.value">{{ item.label }}</span>
-									</el-option>
-								</el-select>
-							</div>
-						</template>
-						<template v-else>
-							<div class="app-item">
-								<el-button icon="el-icon-refresh" v-on:click="handleRotateBtnClick">Rotate</el-button>
-							</div>
-						</template>
-					</div>
-					<div class="app-block">
-						<div class="app-item"><el-button icon="el-icon-delete" v-on:click="handleRemoveBtnClick">Remove</el-button></div>
-					</div>
-				</div>
-			</template>
-			<div class="app-group">
-				<div class="app-block">
-					<div class="app-item">
-						<el-switch v-model="greyScaleEnabled" active-text="Grey scale"></el-switch>
-					</div>
-				</div>
-				<template v-if="greyScaleEnabled">
-					<div class="app-block">
-						<div class="app-item">
-							<div class="app-item-label">Threshold</div>
-							<el-slider v-model="threshold" :min="0" :max="255"></el-slider>
+						</div>
+						<div class="app-block">
+							<div class="app-item"><el-button icon="el-icon-delete" v-on:click="handleRemoveBtnClick">Remove</el-button></div>
 						</div>
 					</div>
 				</template>
-				<div class="app-block">
-					<div class="app-item">
-						<div class="app-item-label">Zoom</div>
-						<template>
-							<el-slider
-								v-model="camera.zoom"
-								:min="0.1"
-								:max="2"
-								:step="0.1"
-								@change="handleScaleChange">
-							</el-slider>
-						</template>
+				<div class="app-group">
+					<div class="app-block">
+						<div class="app-item">
+							<el-switch v-model="greyScaleEnabled" active-text="Grey scale"></el-switch>
+						</div>
 					</div>
-				</div>
-				<div class="app-block">
-					<div class="app-item">
-						<div class="block">
-							<el-button @click="handleCenterBtnClick">Center</el-button>
+					<template v-if="greyScaleEnabled">
+						<div class="app-block">
+							<div class="app-item">
+								<div class="app-item-label">Threshold</div>
+								<el-slider v-model="threshold" :min="0" :max="255"></el-slider>
+							</div>
+						</div>
+					</template>
+					<div class="app-block">
+						<div class="app-item">
+							<div class="app-item-label">Zoom</div>
+							<template>
+								<el-slider
+									v-model="camera.zoom"
+									:min="0.1"
+									:max="2"
+									:step="0.1"
+									@change="handleScaleChange">
+								</el-slider>
+							</template>
+						</div>
+					</div>
+					<div class="app-block">
+						<div class="app-item">
+							<div class="block">
+								<el-button @click="handleCenterBtnClick">Center</el-button>
+							</div>
 						</div>
 					</div>
 				</div>
