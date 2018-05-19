@@ -33,7 +33,7 @@ canvas{
     display: flex;
 }
 .app-controls-inner {
-	padding: 0 40px;
+	padding: 0 30px;
 	overflow: auto;
 	width: 100%;
 }
@@ -99,7 +99,18 @@ canvas{
 .app-controls.closed .app-controls-inner{
 	display: none;
 }
-@media screen and (min-width: 900px) {
+
+.el-radio-group {
+	display: block;
+}
+.el-radio.is-bordered{
+	display: block;
+	margin: 0;
+}
+.el-radio.is-bordered + .el-radio.is-bordered {
+	margin: 12px 0 0;
+}
+@media screen and (min-width: 360px) {
 	.app {
 		display: flex;
 		flex-direction: row;
@@ -112,6 +123,10 @@ canvas{
 		flex: 0 1 auto;
 		position: static;
 		max-height: 100%;
+		padding-top: 0;
+	}
+	.app-controls-inner {
+		padding-top: 30px;
 	}
 	.app-controls.closed .app-controls-inner {
 		display: block;

@@ -9,7 +9,7 @@
 </head>
 <body>
 	<div id="app" class="app">
-		<div class="app-canvas" v-bind:class="{ active: isCtrlKeyPressed }">
+		<div class="app-canvas">
 			<canvas ref="canvas"></canvas>
 		</div>
 
@@ -113,10 +113,29 @@
 				<div class="app-group">
 					<div class="app-block">
 						<div class="app-item">
-							<el-switch v-model="greyScaleEnabled" active-text="Grey scale"></el-switch>
+							<div>
+								<el-radio-group v-model="filter">
+									<el-radio label="1" border>Floyd Steinberg</el-radio>
+									<el-radio label="2" border>Bayer Matrix</el-radio>
+									<el-radio label="3" border>Threshold</el-radio>
+								</el-radio-group>
+							</div>
 						</div>
 					</div>
-					<template v-if="greyScaleEnabled">
+					<template v-if="filter == '2'">
+						<div class="app-block">
+							<div class="app-item">
+								<div class="app-item-label">Size</div>
+								<el-radio-group v-model="bayerSize">
+									<el-radio label="2">2x2</el-radio>
+									<el-radio label="3">3x3</el-radio>
+									<el-radio label="4">4x4</el-radio>
+									<el-radio label="8">8x8</el-radio>
+								</el-radio-group>
+							</div>
+						</div>
+					</template>
+					<template v-if="filter == '3'">
 						<div class="app-block">
 							<div class="app-item">
 								<div class="app-item-label">Threshold</div>
@@ -124,6 +143,8 @@
 							</div>
 						</div>
 					</template>
+				</div>
+				<div class="app-group">
 					<div class="app-block">
 						<div class="app-item">
 							<div class="app-item-label">Zoom</div>

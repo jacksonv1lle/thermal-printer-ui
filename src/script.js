@@ -34,9 +34,97 @@ function applyGreyScale(data, threshold) {
 	}
 	return data;
 }
+function applyFloydSteinberg(data) {
+    var buffer = data.data,
+        len = buffer.length,
+        w = data.width * 4,
+        h = data.height;
+    for (var i = 0; i < h; i++)
+        for (var j = 0; j < w; j += 4) {
+
+            var ci = i * w + j;
+			let lum = buffer[ci] * 0.3 + buffer[ci + 1] * 0.59 + buffer[ci + 2] * 0.11;
+
+            var cc1 = lum;
+            var cc2 = lum;
+            var cc3 = lum;
+            var rc1 = (cc1 < 128 ? 0 : 255);
+            var rc2 = (cc2 < 128 ? 0 : 255);
+            var rc3 = (cc3 < 128 ? 0 : 255);
+            var err1 = cc1 - rc1;
+            var err2 = cc2 - rc2;
+            var err3 = cc3 - rc3;
+            buffer[ci] = rc1;
+            buffer[ci + 1] = rc2;
+            buffer[ci + 2] = rc3;
+            if (j + 1 + 3 < w) {
+                buffer[ci + 1 + 3] += (err1 * 7) >> 4;
+                buffer[ci + 1 + 4] += (err2 * 7) >> 4;
+                buffer[ci + 1 + 5] += (err3 * 7) >> 4;
+            }
+            if (i + 1 == h) continue;
+            if (j > 0) {
+                buffer[ci + w - 1] += (err1 * 3) >> 4;
+                buffer[ci + w - 1 + 1] += (err2 * 3) >> 4;
+                buffer[ci + w - 1 + 2] += (err3 * 3) >> 4;
+            }
+            buffer[ci + w] += (err1 * 5) >> 4;
+            buffer[ci + w + 1] += (err2 * 5) >> 4;
+            buffer[ci + w + 2] += (err3 * 5) >> 4;
+            if (j + 1 + 3 < w) {
+                buffer[ci + w + 1] += (err1 * 1) >> 4;
+                buffer[ci + w + 2] += (err2 * 1) >> 4;
+                buffer[ci + w + 3] += (err3 * 1) >> 4;
+            }
+        }
+    return data;
+}
+function applyBayerMatrix(data, n){
+	var buffer = data.data,
+        len = buffer.length,
+        w = data.width * 4,
+        h = data.height;
+    let unit = 1 / (n*n+1);
+    let matrix = [];
+    switch(n){
+    	case 3:
+    		matrix = [[0,7,3],[6,5,2],[4,1,8]];
+    		break;
+    	case 4:
+    		matrix = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+    		break;
+    	case 8:
+    		matrix = [[0, 48, 12, 60, 3, 51, 15, 63], 
+    				  [32, 16, 44, 28, 35, 19, 47, 31], 
+    				  [8, 56, 4, 52, 11, 59, 7, 55], 
+    				  [40, 24, 36, 20, 43, 27, 39, 23],
+    				  [2, 50, 14, 62, 1, 49, 13, 61],
+    				  [34, 18, 46, 30, 33, 17, 45, 29],
+    				  [10, 58, 6, 54, 9, 57, 5, 53],
+    				  [42, 26, 38, 22, 41, 25, 37, 21]];
+    		break;
+    	case 2:
+    	default:
+    		matrix = [[0,2],[3,1]];
+    		break;
+    }
+	for(y=0;y<h;y++){
+		for(x=0;x<w;x+=4){
+			var ci = y * w + x;
+			let lum = buffer[ci] * 0.3 + buffer[ci + 1] * 0.59 + buffer[ci + 2] * 0.11;
+			let threshold = matrix[(x/4)%n][y%n];
+			threshold = (threshold+1) * unit * 255;
+			lum = lum < threshold ? 0 : 256;
+			buffer[ci] = lum;
+			buffer[ci + 1] = lum;
+			buffer[ci + 2] = lum;
+		}
+	}
+	return data;
+}
 function sendData(data) {
 	return new Promise(function(resolve, reject) {
-		/*setTimeout(function(){resolve()},500);return;*/
+		setTimeout(function(){resolve()},500);return;
 		var formData = new FormData();
 		formData.append("data", "{'data':" + JSON.stringify(data) + "}");
 		var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
@@ -135,7 +223,11 @@ var app = new Vue({
 		activeObjects: [],
 		imageDialogVisible: false,
 		threshold: 127,
+		filter: '1',
+		bayerSize: '2',
 		greyScaleEnabled: false,
+		floydSteinbergEnabled: false,
+		applyBayerMatrixEnabled: false,
 		printStatus: PRINT_STATUS.IDLE,
 		printProgress: 0,
 		printingDialogVisible: false,
@@ -169,7 +261,7 @@ var app = new Vue({
         }],
         fontFamily: 'Helvetica',
         fontFamilyList: [{label: 'Helvetica', value: 'Helvetica'}],
-        isCtrlKeyPressed: false
+        keys:[]
 	},
 	methods: {
 		handleImageChange: function(e){
@@ -223,8 +315,8 @@ var app = new Vue({
 			}
 		},
 		handleFontFamilyChange: function(value){
-			this.fontFamily = value;
-			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'fontFamily': value});
+			this.fontFamily = value.replace('+', ' ');
+			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'fontFamily': this.fontFamily});
 		},
 		handleInvertBtnClick: function(){
 			if(this.activeObjects[0] && this.activeObjects[0].type == 'i-text') {
@@ -247,7 +339,6 @@ var app = new Vue({
                 minHeight = minWidth * aspect;
 
             let angle = obj.get('angle');
-            console.log('angle ', angle);
             if(angle>=0&&angle<90) angle=90;
             else if(angle>=90&&angle<180) angle=180;
             else if(angle>=180&&angle<270) angle=270;
@@ -272,7 +363,9 @@ var app = new Vue({
 		},
 		postRender: function(){
 			var data = this.getPageData();
-			if(this.greyScaleEnabled) data = applyGreyScale(data, this.threshold);
+			if(this.filter == '1') data = applyFloydSteinberg(data);
+			if(this.filter == '2') data = applyBayerMatrix(data, parseInt(this.bayerSize));
+			if(this.filter == '3') data = applyGreyScale(data, this.threshold);
 			var ctx = this.canvas.contextContainer;
 			var center = this.camera.getCenter();
 			ctx.putImageData(data, -center.x, -center.y, 0, 0, this.pageWidth*this.camera.zoom, this.pageHeight*this.camera.zoom);
@@ -341,11 +434,13 @@ var app = new Vue({
 				this.printStatus = PRINT_STATUS.PRINTING;
 				this.printingDialogVisible = true;
 				var data = print_ctx.getImageData(0, 0, this.pageWidth, this.pageHeight);
-				data = applyGreyScale(data, this.threshold);
+
+				if(this.filter == '1') data = applyFloydSteinberg(data);
+				if(this.filter == '2') data = applyBayerMatrix(data, parseInt(this.bayerSize));
+				if(this.filter == '3') data = applyGreyScale(data, this.threshold);
+
 				print_ctx.putImageData(data, 0, 0, 0, 0, this.pageWidth, this.pageHeight);
-				console.log(data);
 				var chunks = getByteArrayChunks(data);
-				console.log(chunks);
 				this.printProgress = 0;
 				const printChunk = async(i) => {
 					this.printProgress = Math.ceil((i / chunks.length) * 100);
@@ -376,14 +471,15 @@ var app = new Vue({
 		var _container = _canvas.parentNode;
 		googleFonts = getGoogleFonts();
 		if(googleFonts) {
-			googleFonts = googleFonts.map(font=>{return {value:font,label:font}});
+			googleFonts = googleFonts.map(font=>{return {value:font,label:font.replace('+', ' ')}});
 			this.fontFamilyList = this.fontFamilyList.concat(googleFonts);
 		}
 		this.canvas = new fabric.Canvas(_canvas,{
 			selectionLineWidth: 2,
 			snapAngle: 45,
 			imageSmoothingEnabled: true,
-			enableRetinaScaling: false
+			enableRetinaScaling: false,
+			preserveObjectStacking: true
 		});
 		var page = new fabric.Rect({
 			left: 0,
@@ -404,7 +500,9 @@ var app = new Vue({
 
 		this.centerViewport();
 
-		//this.canvas.setViewportTransform([ 1, 0, 0, 1, 0, 0 ]);
+		this.canvas.setViewportTransform([ 1, 0, 
+										   0, 1, 
+										   0, 0 ]);
 
 		window.addEventListener('resize', e => {
 			this.canvas.setWidth(_container.offsetWidth);
@@ -414,7 +512,6 @@ var app = new Vue({
 
 		const handleActiveObjects = () => {
 			this.activeObjects = this.canvas.getActiveObjects();
-			console.log(this.activeObjects);
 			if(this.activeObjects.length === 0) return;
 			switch(this.activeObjects[0].type){
 				case 'i-text':
@@ -435,12 +532,9 @@ var app = new Vue({
 		});
 
 		window.addEventListener('keydown', e => {
-			console.log(e.keyCode);
+			
+			this.keys[e.keyCode] = true;
 		    switch(e.keyCode){
-		    	case 17: {
-		    		this.isCtrlKeyPressed = true;
-		    		break;
-		    	}
 		    	case 46: {
 		    		//Delete
     				var activeObjects = this.canvas.getActiveObjects();
@@ -477,20 +571,31 @@ var app = new Vue({
 				}
 	    		default: break;
 		    }
+		    if(this.keys[17] && this.keys[187]) {
+		    	//zoom out
+		    	e.preventDefault();
+		    	let zoom = this.camera.getZoom();
+		    	this.camera.setZoom(zoom + 0.2);
+				this.centerViewport();
+		    }
+		    if(this.keys[17] && this.keys[189]) {
+		    	//zoom in
+		    	e.preventDefault();
+		    	let zoom = this.camera.getZoom();
+		    	this.camera.setZoom(zoom - 0.2);
+				this.centerViewport();
+		    }
 		});
 		window.addEventListener('keyup', e => {
+			this.keys[e.keyCode] = false;
 		    switch(e.keyCode){
-		    	case 17: {
-		    		this.isCtrlKeyPressed = false;
-		    		break;
-		    	}
 		    	default:
 		    		break;
 		    }
 		});
 		const handleMove = e => {
-			if(!this.isCtrlKeyPressed) return;
-
+			if(!this.isPanningMode) return;
+			e.preventDefault();
 			const clientX = e.touches ? e.touches[0].clientX : e.clientX;
 			const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
@@ -504,13 +609,22 @@ var app = new Vue({
 			mouse.x = e.clientX;
 			mouse.y = e.clientY;
 		});
-
+		window.addEventListener("mousedown", (e)=>{
+			if(this.keys[32]) {
+				this.isPanningMode = true;
+			}
+		}, false);
+		window.addEventListener("mouseup", (e)=>{
+			this.isPanningMode = false;
+		}, false);
+		window.addEventListener("mouseout", (e)=>{
+			this.isPanningMode = false;
+		}, false);
 		window.addEventListener("touchstart", (e)=>{
-			console.log(e);
 			if(e.touches && e.touches.length == 2) {
 				mouse.x = e.touches[0].clientX;
 				mouse.y = e.touches[0].clientY;
-				this.isCtrlKeyPressed = true;
+				this.isPanningMode = true;
 			}
 		}, false);
 		window.addEventListener("touchmove", e=>{
@@ -520,11 +634,10 @@ var app = new Vue({
 		}, false);
 		window.addEventListener("touchend", e=>{
 			if(e.touches && e.touches.length != 2) {
-				this.isCtrlKeyPressed = false;
+				this.isPanningMode = false;
 			}
 		}, false);
 		_container.addEventListener("mousewheel", e=>{
-			console.log(e.deltaY);
 			const camPos = this.camera.getCenter();
 			this.camera.setCenter(new fabric.Point(camPos.x + e.deltaX, camPos.y + e.deltaY));
 		}, false);
