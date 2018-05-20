@@ -33,7 +33,7 @@ canvas{
     display: flex;
 }
 .app-controls-inner {
-	padding: 0 30px;
+	padding: 0 20px;
 	overflow: auto;
 	width: 100%;
 }
@@ -110,7 +110,7 @@ canvas{
 .el-radio.is-bordered + .el-radio.is-bordered {
 	margin: 12px 0 0;
 }
-@media screen and (min-width: 360px) {
+@media screen and (min-width: 640px) {
 	.app {
 		display: flex;
 		flex-direction: row;
@@ -126,7 +126,7 @@ canvas{
 		padding-top: 0;
 	}
 	.app-controls-inner {
-		padding-top: 30px;
+		padding-top: 20px;
 	}
 	.app-controls.closed .app-controls-inner {
 		display: block;

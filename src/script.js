@@ -545,7 +545,7 @@ var app = new Vue({
 		    		});
 		    		break;
 		    	}
-		    	case 38: {
+		    	/*case 38: {
 		    		//up
 		    		let pos = this.camera.getCenter();
 		    		this.camera.setCenter(new fabric.Point(pos.x, pos.y + 10));
@@ -568,7 +568,7 @@ var app = new Vue({
 		    		let pos = this.camera.getCenter();
 		    		this.camera.setCenter(new fabric.Point(pos.x + 10, pos.y));
 					break;	
-				}
+				}*/
 	    		default: break;
 		    }
 		    if(this.keys[17] && this.keys[187]) {
