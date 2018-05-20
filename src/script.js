@@ -1,3 +1,4 @@
+"use strict";
 var Camera = function(centerPoint){
 	this.center = centerPoint || new fabric.Point(0,0);
 	this.zoom = 1;
@@ -108,8 +109,8 @@ function applyBayerMatrix(data, n){
     		matrix = [[0,2],[3,1]];
     		break;
     }
-	for(y=0;y<h;y++){
-		for(x=0;x<w;x+=4){
+	for(var y=0;y<h;y++){
+		for(var x=0;x<w;x+=4){
 			var ci = y * w + x;
 			let lum = buffer[ci] * 0.3 + buffer[ci + 1] * 0.59 + buffer[ci + 2] * 0.11;
 			let threshold = matrix[(x/4)%n][y%n];
@@ -124,11 +125,25 @@ function applyBayerMatrix(data, n){
 }
 function sendData(data) {
 	return new Promise(function(resolve, reject) {
-		setTimeout(function(){resolve()},500);return;
+		//setTimeout(function(){resolve()},500);return;
 		var formData = new FormData();
 		formData.append("data", "{'data':" + JSON.stringify(data) + "}");
 		var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
 		xhr.open('POST', '/print');
+		xhr.onreadystatechange = function() {
+			if (xhr.readyState > 3 && xhr.status == 200) resolve(xhr.responseText);
+			if (xhr.readyState > 3 && xhr.status == 400) reject(xhr.responseText);
+		};
+		xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+		xhr.send(formData);
+	});
+}
+function sendPrinterConfig(config) {
+	return new Promise(function(resolve, reject) {
+		var formData = new FormData();
+		formData.append("data", JSON.stringify(config));
+		var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
+		xhr.open('POST', '/config');
 		xhr.onreadystatechange = function() {
 			if (xhr.readyState > 3 && xhr.status == 200) resolve(xhr.responseText);
 			if (xhr.readyState > 3 && xhr.status == 400) reject(xhr.responseText);
@@ -193,7 +208,7 @@ function getGoogleFonts(){
 			document.body.appendChild(_fontDiv);
 			var style = '';
 			fontList = fonts.split('|').map(font=>{
-				parsedFont=font.replace('+', ' ');
+				var parsedFont = font.replace('+', ' ');
 				var _span = document.createElement('span');
 				_span.style.fontFamily = parsedFont;
 				_fontDiv.appendChild(_span);
@@ -225,9 +240,6 @@ var app = new Vue({
 		threshold: 127,
 		filter: '1',
 		bayerSize: '2',
-		greyScaleEnabled: false,
-		floydSteinbergEnabled: false,
-		applyBayerMatrixEnabled: false,
 		printStatus: PRINT_STATUS.IDLE,
 		printProgress: 0,
 		printingDialogVisible: false,
@@ -235,6 +247,7 @@ var app = new Vue({
 		controlsOpen: false,
 
 		/* i-text props */
+		textValue: 'Hi there',
 		textAlign:'left',
 		lineHeight: 1.16,
 		alignOptions: [{
@@ -261,7 +274,13 @@ var app = new Vue({
         }],
         fontFamily: 'Helvetica',
         fontFamilyList: [{label: 'Helvetica', value: 'Helvetica'}],
-        keys:[]
+        keys:[],
+
+        /* Printer props */
+        heatTime: 125,
+        heatInterval: 40,
+        printDensity: 20,
+        printBreakTime: 2
 	},
 	methods: {
 		handleImageChange: function(e){
@@ -270,11 +289,12 @@ var app = new Vue({
 		getPageData:function(){
 			var ctx = this.canvas.contextContainer,
 				center = this.camera.getCenter();
-			var imageData = ctx.getImageData(-center.x, -center.y, this.pageWidth*this.camera.zoom, this.pageHeight*this.camera.zoom);
+			var imageData = ctx.getImageData(-center.x*window.devicePixelRatio, -center.y*window.devicePixelRatio, this.pageWidth*this.camera.zoom*window.devicePixelRatio, this.pageHeight*this.camera.zoom*window.devicePixelRatio);
 			return imageData;
 		},
 		handleTextBtnClick: function(){
-			this.canvas.add(new fabric.IText('My Text', {
+			this.textValue = '';
+			this.canvas.add(new fabric.IText(this.textValue, {
 				width: this.pageWidth,
 				top: 0,
 				left: 0,
@@ -285,6 +305,25 @@ var app = new Vue({
 			const objects = this.canvas.getObjects();
 			this.canvas.setActiveObject(objects[objects.length-1]);
 		},
+		handleFilterChange:function(value){
+			window.localStorage.setItem('filter', value);
+		},
+		handleBayerSizeChange: function(value){
+			window.localStorage.setItem('bayerSize', value);
+		},
+		handleThresholdChange: function(value){
+			window.localStorage.setItem('threshold', value);
+		},
+		handlePrinterConfigChange: function(value){
+			let config = {
+				heatTime: this.heatTime,
+				heatInterval: this.heatInterval,
+				printDensity: this.printDensity,
+				printBreakTime: this.printBreakTime
+			};
+			window.localStorage.setItem('config', JSON.stringify(config));
+			sendPrinterConfig(config).then(data=>{console.log(data);}).catch(e=>{console.log(e);});
+		},
 		handleTextAlignChange: function(value){
 			this.textAlign = value;
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'textAlign': value});
@@ -292,6 +331,11 @@ var app = new Vue({
 		handleLineHeightChange: function(value){
 			//this.lineHeight = value;
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'lineHeight': value});
+		},
+		handleTextValueChange: function(value){
+			console.log(value);
+			//this.lineHeight = value;
+			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'text': value});
 		},
 		handleFontSizeChange(e){
 			console.log(e);
@@ -316,6 +360,7 @@ var app = new Vue({
 		},
 		handleFontFamilyChange: function(value){
 			this.fontFamily = value.replace('+', ' ');
+			window.localStorage.setItem('fontFamily', this.fontFamily);
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'fontFamily': this.fontFamily});
 		},
 		handleInvertBtnClick: function(){
@@ -368,7 +413,7 @@ var app = new Vue({
 			if(this.filter == '3') data = applyGreyScale(data, this.threshold);
 			var ctx = this.canvas.contextContainer;
 			var center = this.camera.getCenter();
-			ctx.putImageData(data, -center.x, -center.y, 0, 0, this.pageWidth*this.camera.zoom, this.pageHeight*this.camera.zoom);
+			ctx.putImageData(data, -center.x*window.devicePixelRatio, -center.y*window.devicePixelRatio, 0, 0, this.pageWidth*this.camera.zoom*window.devicePixelRatio, this.pageHeight*this.camera.zoom*window.devicePixelRatio);
 		},
 		handleImageDialogConfirm: function(){
 			const upload = this.$refs.upload;
@@ -404,8 +449,8 @@ var app = new Vue({
 			e.preventDefault();
 			this.print();
 		},
-		handleScaleChange: function(){
-			console.log('test');
+		handleScaleChange: function(value){
+			window.localStorage.setItem('zoom', value);
 			this.centerViewport();
 		},
 		handlePrintDialogCancel: function(){
@@ -469,7 +514,7 @@ var app = new Vue({
 	mounted: function(){
 		var _canvas = this.$refs.canvas;
 		var _container = _canvas.parentNode;
-		googleFonts = getGoogleFonts();
+		var googleFonts = getGoogleFonts();
 		if(googleFonts) {
 			googleFonts = googleFonts.map(font=>{return {value:font,label:font.replace('+', ' ')}});
 			this.fontFamilyList = this.fontFamilyList.concat(googleFonts);
@@ -478,7 +523,7 @@ var app = new Vue({
 			selectionLineWidth: 2,
 			snapAngle: 45,
 			imageSmoothingEnabled: true,
-			enableRetinaScaling: false,
+			//enableRetinaScaling: false,
 			preserveObjectStacking: true
 		});
 		var page = new fabric.Rect({
@@ -491,7 +536,6 @@ var app = new Vue({
 			hoverCursor: 'default',
 			excludeFromExport: true
 		});
-
 		this.canvas.add(page);
 
 		this.canvas.setWidth(_container.offsetWidth);
@@ -500,9 +544,26 @@ var app = new Vue({
 
 		this.centerViewport();
 
-		this.canvas.setViewportTransform([ 1, 0, 
-										   0, 1, 
-										   0, 0 ]);
+		let settings = window.localStorage;
+		if(settings) {
+			this.bayerSize = settings.bayerSize || this.bayerSize;
+			this.filter = settings.filter || this.filter;
+			this.threshold = parseInt(settings.threshold) || this.threshold;
+			this.zoom = parseFloat(settings.zoom) || this.zoom;
+			this.camera.setZoom(this.zoom);
+			if(settings.config) {
+				try{
+					let config = JSON.parse(settings.config);
+					this.heatTime = config.heatTime;
+					this.heatInterval = config.heatInterval;
+					this.printDensity = config.printDensity;
+					this.printBreakTime = config.printBreakTime;
+					sendPrinterConfig(config);
+				} catch(e){
+					console.log('Unable to parse config');
+				}
+			}	
+		}
 
 		window.addEventListener('resize', e => {
 			this.canvas.setWidth(_container.offsetWidth);

@@ -65,46 +65,61 @@
 				</div>
 				<template v-if="activeObjects.length > 0">
 					<div class="app-group">
-						<div class="app-block" v-for="object in activeObjects">
+						<template v-for="object in activeObjects">
 							<template v-if="object.type == 'i-text'">
-								<div class="app-item">
-									<div class="app-item-label">Line height</div>
-									<el-input-number v-model="lineHeight" :min="0" :max="3" :step="0.02" @change="handleLineHeightChange"></el-input-number>
+								<div class="app-block">
+									<div class="app-item">
+										<div class="app-item-label">Text</div>
+										<el-input
+											v-model="textValue"
+											type="textarea"
+											:rows="2"
+											@input="handleTextValueChange">
+										</el-input>
+									</div>
 								</div>
-								<div class="app-item">
-									<div class="app-item-label">Align text</div>
-									<el-select v-model="textAlign" placeholder="Select" @change="handleTextAlignChange">
-										<el-option
-											v-for="item in alignOptions"
-											:key="item.value"
-											:label="item.label"
-											:value="item.value">
-										</el-option>
-									</el-select>
-								</div>
-								<div class="app-item">
-									<div class="app-item-label">Font family</div>
-									<el-select v-model="fontFamily" placeholder="Select" @change="handleFontFamilyChange">
-										<el-option
-											v-for="item in fontFamilyList"
-											:key="item.value"
-											:label="item.label"
-											:value="item.value">
-											<span :class="'font-'+item.value">{{ item.label }}</span>
-										</el-option>
-									</el-select>
-								</div>
-								<div class="app-item">
-									<div class="app-item-label">Colour</div>
-									<el-button v-on:click="handleInvertBtnClick">Invert</el-button>
+								<div class="app-block">
+									<div class="app-item">
+										<div class="app-item-label">Line height</div>
+										<el-input-number v-model="lineHeight" :min="0" :max="3" :step="0.02" @change="handleLineHeightChange"></el-input-number>
+									</div>
+									<div class="app-item">
+										<div class="app-item-label">Align text</div>
+										<el-select v-model="textAlign" placeholder="Select" @change="handleTextAlignChange">
+											<el-option
+												v-for="item in alignOptions"
+												:key="item.value"
+												:label="item.label"
+												:value="item.value">
+											</el-option>
+										</el-select>
+									</div>
+									<div class="app-item">
+										<div class="app-item-label">Font family</div>
+										<el-select v-model="fontFamily" placeholder="Select" @change="handleFontFamilyChange">
+											<el-option
+												v-for="item in fontFamilyList"
+												:key="item.value"
+												:label="item.label"
+												:value="item.value">
+												<span :class="'font-'+item.value">{{ item.label }}</span>
+											</el-option>
+										</el-select>
+									</div>
+									<div class="app-item">
+										<div class="app-item-label">Colour</div>
+										<el-button v-on:click="handleInvertBtnClick">Invert</el-button>
+									</div>
 								</div>
 							</template>
 							<template v-else>
-								<div class="app-item">
-									<el-button icon="el-icon-refresh" v-on:click="handleRotateBtnClick">Rotate</el-button>
+								<div class="app-block">
+									<div class="app-item">
+										<el-button icon="el-icon-refresh" v-on:click="handleRotateBtnClick">Rotate</el-button>
+									</div>
 								</div>
 							</template>
-						</div>
+						</template>
 						<div class="app-block">
 							<div class="app-item"><el-button icon="el-icon-delete" v-on:click="handleRemoveBtnClick">Remove</el-button></div>
 						</div>
@@ -114,7 +129,7 @@
 					<div class="app-block">
 						<div class="app-item">
 							<div>
-								<el-radio-group v-model="filter">
+								<el-radio-group v-model="filter" @change="handleFilterChange">
 									<el-radio label="1" border>Floyd Steinberg</el-radio>
 									<el-radio label="2" border>Bayer Matrix</el-radio>
 									<el-radio label="3" border>Threshold</el-radio>
@@ -126,7 +141,7 @@
 						<div class="app-block">
 							<div class="app-item">
 								<div class="app-item-label">Size</div>
-								<el-radio-group v-model="bayerSize">
+								<el-radio-group v-model="bayerSize" @change="handleBayerSizeChange">
 									<el-radio label="2">2x2</el-radio>
 									<el-radio label="3">3x3</el-radio>
 									<el-radio label="4">4x4</el-radio>
@@ -139,7 +154,7 @@
 						<div class="app-block">
 							<div class="app-item">
 								<div class="app-item-label">Threshold</div>
-								<el-slider v-model="threshold" :min="0" :max="255"></el-slider>
+								<el-slider v-model="threshold" :min="0" :max="255" @change="handleThresholdChange"></el-slider>
 							</div>
 						</div>
 					</template>
@@ -164,6 +179,32 @@
 							<div class="block">
 								<el-button @click="handleCenterBtnClick">Center</el-button>
 							</div>
+						</div>
+					</div>
+				</div>
+				<div class="app-group">
+					<div class="app-block">
+						<div class="app-item">
+							<div class="app-item-label">Heat Time</div>
+							<el-slider v-model="heatTime" :min="0" :max="255" @change="handlePrinterConfigChange"></el-slider>
+						</div>
+					</div>
+					<div class="app-block">
+						<div class="app-item">
+							<div class="app-item-label">Heat Interval</div>
+							<el-slider v-model="heatInterval" :min="0" :max="100" @change="handlePrinterConfigChange"></el-slider>
+						</div>
+					</div>
+					<div class="app-block">
+						<div class="app-item">
+							<div class="app-item-label">Print Density</div>
+							<el-slider v-model="printDensity" :min="0" :max="50" @change="handlePrinterConfigChange"></el-slider>
+						</div>
+					</div>
+					<div class="app-block">
+						<div class="app-item">
+							<div class="app-item-label">Print Break Time</div>
+							<el-slider v-model="printBreakTime" :min="0" :max="50" @change="handlePrinterConfigChange"></el-slider>
 						</div>
 					</div>
 				</div>
