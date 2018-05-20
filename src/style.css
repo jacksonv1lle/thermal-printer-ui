@@ -3,7 +3,7 @@ html,body,#app{
 }
 body{
     margin:0;
-    font-family: Helvetica Neue,Helvetica,PingFang SC,Hiragino Sans GB,Microsoft YaHei,SimSun,sans-serif;
+    font-family: Helvetica Neue, sans-serif;
 }
 canvas{
     display:block;
@@ -66,6 +66,9 @@ canvas{
 	display: flex;
 	justify-content: center;
 	align-items: center;
+}
+.el-dialog__wrapper.print .el-dialog__body {
+	text-align: center;
 }
 .el-dialog {
 	max-width: 400px;

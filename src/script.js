@@ -293,7 +293,7 @@ var app = new Vue({
 			return imageData;
 		},
 		handleTextBtnClick: function(){
-			this.textValue = '';
+			this.textValue = 'Enter text';
 			this.canvas.add(new fabric.IText(this.textValue, {
 				width: this.pageWidth,
 				top: 0,
@@ -494,6 +494,7 @@ var app = new Vue({
 						return;
 					}
 					try {
+						console.log(chunks[i]);
 						var res = await sendData(Array.from(chunks[i]));
 						printChunk(i + 1);
 					} catch (e) {
@@ -512,6 +513,28 @@ var app = new Vue({
 		}
 	},
 	mounted: function(){
+		let settings = window.localStorage;
+		if(settings) {
+			this.bayerSize = settings.bayerSize || this.bayerSize;
+			this.filter = settings.filter || this.filter;
+			this.threshold = parseInt(settings.threshold) || this.threshold;
+			this.zoom = parseFloat(settings.zoom) || this.zoom;
+			this.camera.setZoom(this.zoom);
+	   		this.pageHeight = parseFloat(settings.pageHeight) || this.pageHeight;
+			if(settings.config) {
+				try{
+					let config = JSON.parse(settings.config);
+					this.heatTime = config.heatTime;
+					this.heatInterval = config.heatInterval;
+					this.printDensity = config.printDensity;
+					this.printBreakTime = config.printBreakTime;
+					sendPrinterConfig(config);
+				} catch(e){
+					console.log('Unable to parse config');
+				}
+			}	
+		}
+
 		var _canvas = this.$refs.canvas;
 		var _container = _canvas.parentNode;
 		var googleFonts = getGoogleFonts();
@@ -532,9 +555,24 @@ var app = new Vue({
 			fill: '#fff',
 			width: this.pageWidth,
 			height: this.pageHeight,
-			selectable: false,
+			//selectable: false,
+			lockScalingX: true,
+			lockMovementX: true,
+			lockMovementY: true,
 			hoverCursor: 'default',
 			excludeFromExport: true
+		});
+
+		page.setControlsVisibility({
+			mt: false, 
+			mb: true, /* Only allow rect to be scaled from the bottom */
+			ml: false, 
+			mr: false, 
+			bl: false,
+			br: false, 
+			tl: false, 
+			tr: false,
+			mtr: false
 		});
 		this.canvas.add(page);
 
@@ -543,27 +581,6 @@ var app = new Vue({
 		this.canvas.calcOffset();
 
 		this.centerViewport();
-
-		let settings = window.localStorage;
-		if(settings) {
-			this.bayerSize = settings.bayerSize || this.bayerSize;
-			this.filter = settings.filter || this.filter;
-			this.threshold = parseInt(settings.threshold) || this.threshold;
-			this.zoom = parseFloat(settings.zoom) || this.zoom;
-			this.camera.setZoom(this.zoom);
-			if(settings.config) {
-				try{
-					let config = JSON.parse(settings.config);
-					this.heatTime = config.heatTime;
-					this.heatInterval = config.heatInterval;
-					this.printDensity = config.printDensity;
-					this.printBreakTime = config.printBreakTime;
-					sendPrinterConfig(config);
-				} catch(e){
-					console.log('Unable to parse config');
-				}
-			}	
-		}
 
 		window.addEventListener('resize', e => {
 			this.canvas.setWidth(_container.offsetWidth);
@@ -587,6 +604,18 @@ var app = new Vue({
 	   .on('selection:created', handleActiveObjects)
 	   .on('selection:updated', handleActiveObjects)
 	   .on('selection:cleared', handleActiveObjects)
+	   .on('object:scaling', ()=>{
+	   		var obj = this.canvas.getActiveObject();
+	   		if(obj.type !== 'rect') return;
+	   		var height = obj.height * obj.scaleY;
+	   		this.pageHeight = height;
+	   		window.localStorage.setItem('pageHeight', height);
+	   })
+	   .on('text:changed', ()=>{
+	   		var obj = this.canvas.getActiveObject();
+	   		if(obj.type !== 'i-text') return;
+	   		this.textValue = obj.text;
+	   })
 	   .on('before:render', ()=>{
 			this.canvas.setZoom(this.camera.getZoom());
 			this.canvas.absolutePan(this.camera.getCenter());
