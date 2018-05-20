@@ -81,6 +81,10 @@
 								</div>
 								<div class="app-block">
 									<div class="app-item">
+										<div class="app-item-label">Font size</div>
+										<el-input-number v-model="fontSize" :min="10" :max="72" :step="2" @change="handleFontSizeChange"></el-input-number>
+									</div>
+									<div class="app-item">
 										<div class="app-item-label">Line height</div>
 										<el-input-number v-model="lineHeight" :min="0" :max="3" :step="0.02" @change="handleLineHeightChange"></el-input-number>
 									</div>

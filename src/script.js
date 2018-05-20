@@ -249,6 +249,7 @@ var app = new Vue({
 		/* i-text props */
 		textValue: 'Hi there',
 		textAlign:'left',
+		fontSize: 20,
 		lineHeight: 1.16,
 		alignOptions: [{
 			value: 'left',
@@ -294,14 +295,21 @@ var app = new Vue({
 		},
 		handleTextBtnClick: function(){
 			this.textValue = 'Enter text';
-			this.canvas.add(new fabric.IText(this.textValue, {
+			let iText = new fabric.IText(this.textValue, {
 				width: this.pageWidth,
 				top: 0,
 				left: 0,
 				fontSize: 20,
 				fontFamily: 'Helvetica',
 				backgroundColor: '#fff'
-			}));
+			})
+			iText.setControlsVisibility({
+				mt: false, 
+				mb: false, /* Only allow rect to be scaled from the bottom */
+				ml: false, 
+				mr: false, 
+			});
+			this.canvas.add(iText);
 			const objects = this.canvas.getObjects();
 			this.canvas.setActiveObject(objects[objects.length-1]);
 		},
@@ -337,8 +345,9 @@ var app = new Vue({
 			//this.lineHeight = value;
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'text': value});
 		},
-		handleFontSizeChange(e){
-			console.log(e);
+		handleFontSizeChange(value){
+			console.log(value);
+			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'fontSize': value});
 		},
 		handleToggleClick(e){
 			this.controlsOpen = !this.controlsOpen;
