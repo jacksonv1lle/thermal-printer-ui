@@ -208,13 +208,13 @@ function getGoogleFonts(){
 			document.body.appendChild(_fontDiv);
 			var style = '';
 			fontList = fonts.split('|').map(font=>{
-				var parsedFont = font.replace('+', ' ');
+				var parsedFont = font.replace(/\+/g, ' ');
 				var _span = document.createElement('span');
 				_span.style.fontFamily = parsedFont;
 				_fontDiv.appendChild(_span);
 				style += '.font-'+font + '{font-family:' + parsedFont + '}';
 
-				return font
+				return font;
 			});
 			_style.innerHTML = style;
 			document.head.appendChild(_style);
@@ -245,6 +245,7 @@ var app = new Vue({
 		printingDialogVisible: false,
 		printingComplete: true,
 		controlsOpen: false,
+		isTouching: false,
 
 		/* i-text props */
 		textValue: 'Hi there',
@@ -312,15 +313,19 @@ var app = new Vue({
 			this.canvas.add(iText);
 			const objects = this.canvas.getObjects();
 			this.canvas.setActiveObject(objects[objects.length-1]);
+			this.canvas.renderAll();
 		},
 		handleFilterChange:function(value){
 			window.localStorage.setItem('filter', value);
+			this.canvas.renderAll();
 		},
 		handleBayerSizeChange: function(value){
 			window.localStorage.setItem('bayerSize', value);
+			this.canvas.renderAll();
 		},
 		handleThresholdChange: function(value){
 			window.localStorage.setItem('threshold', value);
+			this.canvas.renderAll();
 		},
 		handlePrinterConfigChange: function(value){
 			let config = {
@@ -335,19 +340,23 @@ var app = new Vue({
 		handleTextAlignChange: function(value){
 			this.textAlign = value;
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'textAlign': value});
+			this.canvas.renderAll();
 		},
 		handleLineHeightChange: function(value){
 			//this.lineHeight = value;
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'lineHeight': value});
+			this.canvas.renderAll();
 		},
 		handleTextValueChange: function(value){
 			console.log(value);
 			//this.lineHeight = value;
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'text': value});
+			this.canvas.renderAll();
 		},
 		handleFontSizeChange(value){
 			console.log(value);
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'fontSize': value});
+			this.canvas.renderAll();
 		},
 		handleToggleClick(e){
 			this.controlsOpen = !this.controlsOpen;
@@ -366,11 +375,13 @@ var app = new Vue({
 					this.canvas.remove(object);
 				});
 			}
+			this.canvas.renderAll();
 		},
 		handleFontFamilyChange: function(value){
-			this.fontFamily = value.replace('+', ' ');
+			this.fontFamily = value.replace(/\+/g, ' ');
 			window.localStorage.setItem('fontFamily', this.fontFamily);
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'fontFamily': this.fontFamily});
+			this.canvas.renderAll();
 		},
 		handleInvertBtnClick: function(){
 			if(this.activeObjects[0] && this.activeObjects[0].type == 'i-text') {
@@ -379,6 +390,7 @@ var app = new Vue({
 				let backgroundColor = color == '#fff' ? '#000' : '#fff';
 				this.activeObjects[0].set({'backgroundColor': backgroundColor, 'fill': color});
 			}
+			this.canvas.renderAll();
 		},
 		handleRotateBtnClick: function(){
 			var obj = this.canvas.getActiveObject();
@@ -416,6 +428,7 @@ var app = new Vue({
 			this.canvas.calcOffset();
 		},
 		postRender: function(){
+			if(this.isTouching) return;
 			var data = this.getPageData();
 			if(this.filter == '1') data = applyFloydSteinberg(data);
 			if(this.filter == '2') data = applyBayerMatrix(data, parseInt(this.bayerSize));
@@ -460,7 +473,8 @@ var app = new Vue({
 		},
 		handleScaleChange: function(value){
 			window.localStorage.setItem('zoom', value);
-			this.centerViewport();
+			this.canvas.setZoom(this.camera.getZoom());
+			this.canvas.absolutePan(this.camera.getCenter());
 		},
 		handlePrintDialogCancel: function(){
 			this.printStatus = PRINT_STATUS.IDLE;
@@ -514,11 +528,12 @@ var app = new Vue({
 			});
 		},
 		centerViewport: function(){
-			const left = this.pageWidth / 2,
+			/*const left = this.pageWidth / 2,
 				  top = this.pageHeight / 2,
 				  center = this.canvas.getCenter(),
 				  zoom = this.camera.getZoom();
 			this.camera.setCenter(new fabric.Point(-this.canvas.width/2 + left * (zoom) , -this.canvas.height/2 + top * (zoom)));
+			this.canvas.absolutePan(this.camera.getCenter());*/
 		}
 	},
 	mounted: function(){
@@ -548,7 +563,7 @@ var app = new Vue({
 		var _container = _canvas.parentNode;
 		var googleFonts = getGoogleFonts();
 		if(googleFonts) {
-			googleFonts = googleFonts.map(font=>{return {value:font,label:font.replace('+', ' ')}});
+			googleFonts = googleFonts.map(font=>{return {value:font,label:font.replace(/\+/g, ' ')}});
 			this.fontFamilyList = this.fontFamilyList.concat(googleFonts);
 		}
 		this.canvas = new fabric.Canvas(_canvas,{
@@ -590,6 +605,7 @@ var app = new Vue({
 		this.canvas.calcOffset();
 
 		this.centerViewport();
+		this.canvas.setZoom(this.camera.getZoom())
 
 		window.addEventListener('resize', e => {
 			this.canvas.setWidth(_container.offsetWidth);
@@ -626,8 +642,8 @@ var app = new Vue({
 	   		this.textValue = obj.text;
 	   })
 	   .on('before:render', ()=>{
-			this.canvas.setZoom(this.camera.getZoom());
-			this.canvas.absolutePan(this.camera.getCenter());
+			//this.canvas.setZoom(this.camera.getZoom());
+			//this.canvas.absolutePan(this.camera.getCenter());
 		});
 
 		window.addEventListener('keydown', e => {
@@ -702,6 +718,7 @@ var app = new Vue({
 			const dy = clientY - mouse.y;
 			const camPos = this.camera.getCenter();
 			this.camera.setCenter(new fabric.Point(camPos.x - dx, camPos.y - dy));
+			this.canvas.absolutePan(this.camera.getCenter());
 		};
 		window.addEventListener('mousemove', e =>{
 			handleMove(e);
@@ -720,6 +737,7 @@ var app = new Vue({
 			this.isPanningMode = false;
 		}, false);
 		window.addEventListener("touchstart", (e)=>{
+			this.isTouching = true;
 			if(e.touches && e.touches.length == 2) {
 				mouse.x = e.touches[0].clientX;
 				mouse.y = e.touches[0].clientY;
@@ -733,12 +751,14 @@ var app = new Vue({
 		}, false);
 		window.addEventListener("touchend", e=>{
 			if(e.touches && e.touches.length != 2) {
+				this.isTouching = false;
 				this.isPanningMode = false;
 			}
 		}, false);
 		_container.addEventListener("mousewheel", e=>{
 			const camPos = this.camera.getCenter();
 			this.camera.setCenter(new fabric.Point(camPos.x + e.deltaX, camPos.y + e.deltaY));
+			this.canvas.absolutePan(this.camera.getCenter());
 		}, false);
 	}
 });
