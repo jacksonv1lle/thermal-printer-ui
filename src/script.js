@@ -300,7 +300,6 @@ var app = new Vue({
 						if(date.isValid()) {
 							this.textValue = date.format("MMM D, YYYY");
 						}
-						console.log(date);
 					}
 				}
 			});
@@ -695,7 +694,6 @@ var app = new Vue({
 					break;
 			}
 		};
-
 		this.canvas.on('after:render', this.postRender)
 	   .on('selection:created', handleActiveObjects)
 	   .on('selection:updated', handleActiveObjects)
@@ -719,22 +717,25 @@ var app = new Vue({
 			console.log(this.canvas.getObjects());
 		};
 
+		var self = this;
+
 		fabric.Canvas.prototype.disable = function() {
+			console.log('disable');
 			this.set({'selection': false});
 		    this.getObjects().forEach(function(o) {
 				o.selectable = false;
 			});
+			this.discardActiveObject();
 			this.isEnabled = false;
 	    }
 	    fabric.Canvas.prototype.enable = function() {
+			console.log('enable');
 	    	this.set({'selection': true});
 		    this.getObjects().forEach(function(o) {
 				o.selectable = true;
 			});
 			this.isEnabled = true;
 	    }
-	    
-	    this.canvas.disable();
 
 		window.addEventListener('keydown', e => {
 			
@@ -805,19 +806,19 @@ var app = new Vue({
 			mouse.y = e.clientY;
 		});
 		this.canvas.upperCanvasEl.addEventListener("mousedown", (e)=>{
-			if(!this.canvas.isEnabled) {
+			/*if(!this.canvas.isEnabled) {
 				this.canvas.enable();
 				this.canvas._onMouseDown(e);
-			}
+			}*/
 			
 			if(this.keys[32]) {
 				this.isPanningMode = true;
-				this.canvas.disable();
+				//this.canvas.disable();
 			}
 		}, false);
 		window.addEventListener("mouseup", (e)=>{
-			if(timeout) clearTimeout(timeout);
-			this.canvas.enable();
+			//if(timeout) clearTimeout(timeout);
+			//this.canvas.enable();
 			this.isPanningMode = false;
 		}, false);
 		window.addEventListener("mouseout", (e)=>{
@@ -829,28 +830,54 @@ var app = new Vue({
 
 			
 
-		this.canvas.upperCanvasEl.addEventListener("touchstart", (e)=>{
-			timeout = setTimeout(()=>{
-				this.canvas.enable();
-				this.canvas._onMouseDown(e);
-				this.isPanningMode = false;
-			},400);
-			mouse.x = e.touches[0].clientX;
-			mouse.y = e.touches[0].clientY;
-			var activeObjects = this.canvas.getActiveObjects();
+
+		// Touch Point cache
+		var finger_dist = 0;
+		var timeout;
+
+		function get_distance(e) {
+			var diffX = e.targetTouches[0].clientX - e.targetTouches[1].clientX;
+			var diffY = e.targetTouches[0].clientY - e.targetTouches[1].clientY;
+			return 1/(Math.sqrt(diffX * diffX + diffY * diffY)); // Pythagorean theorem
+		}
+		this.canvas.upperCanvasEl.addEventListener("touchstart", ev => {
+	    	this.canvas.disable();
 			this.isTouching = true;
-			if(activeObjects.length===0) {
-				this.isPanningMode = true;
-			} 
+			if(ev.targetTouches.length == 1) {
+				timeout = setTimeout(()=>{
+					this.canvas.enable();
+					this.canvas._onMouseDown(ev);
+					this.isPanningMode = false;
+				},400);
+
+				mouse.x = ev.touches[0].clientX;
+				mouse.y = ev.touches[0].clientY;
+				var activeObjects = this.canvas.getActiveObjects();
+				if(activeObjects.length===0) {
+					this.isPanningMode = true;
+				}
+			}
+			if (ev.targetTouches.length == 2) {
+				this.isPanningMode = false;
+				finger_dist = get_distance(ev);
+			}
 		}, false);
-		this.canvas.upperCanvasEl.addEventListener("touchmove", e=>{
-			clearTimeout(timeout);
-			handleMove(e);
-			mouse.x = e.touches[0].clientX;
-			mouse.y = e.touches[0].clientY;
+		this.canvas.upperCanvasEl.addEventListener("touchmove", ev => {
+			if(timeout) clearTimeout(timeout);
+			handleMove(ev);
+			mouse.x = ev.changedTouches[0].clientX;
+			mouse.y = ev.changedTouches[0].clientY;
+			if (ev.targetTouches.length == 2 && ev.changedTouches.length == 2) {
+				var new_finger_dist = get_distance(ev); // Get current distance between fingers
+				this.zoom = this.zoom * Math.abs(finger_dist / new_finger_dist); // Zoom is proportional to change
+				finger_dist = new_finger_dist; // Save current distance for next time
+				this.canvas.setZoom(this.zoom);
+				this.canvas.absolutePan(new fabric.Point(this.vx, this.vy));
+			}
 		}, false);
-		window.addEventListener("touchend", e=>{
-			if(e.touches.length === 0) {
+		window.addEventListener("touchend", ev => {
+			//ev.preventDefault();
+			if (ev.targetTouches.length == 0) {
 				this.isPanningMode = false;
 				this.isTouching = false;
 				var activeObjects = this.canvas.getActiveObjects();
