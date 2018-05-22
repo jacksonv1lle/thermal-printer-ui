@@ -4,6 +4,14 @@ let mouse = {
 	y: 0
 };
 
+const PRINTER = {
+    /* Default Printer props */
+    heatTime: 125,
+    heatInterval: 40,
+    printDensity: 20,
+    printBreakTime: 2,	
+};
+
 function applyGreyScale(data, threshold) {
 	var buffer = data.data,
 		len = buffer.length,
@@ -265,10 +273,10 @@ var app = new Vue({
         keys:[],
 
         /* Printer props */
-        heatTime: 125,
-        heatInterval: 40,
-        printDensity: 20,
-        printBreakTime: 2
+        heatTime: PRINTER.heatTime,
+        heatInterval: PRINTER.heatInterval,
+        printDensity: PRINTER.printDensity,
+        printBreakTime: PRINTER.printBreakTime,
 	},
 	methods: {
 		handleImageChange: function(e){
@@ -322,6 +330,20 @@ var app = new Vue({
 			};
 			window.localStorage.setItem('config', JSON.stringify(config));
 			sendPrinterConfig(config).then(data=>{console.log(data);}).catch(e=>{console.log(e);});
+		},
+		handleDefaultsBtnClick: function(e){
+			e.preventDefault();	
+	        this.heatTime = PRINTER.heatTime;
+	        this.heatInterval = PRINTER.heatInterval;
+	        this.printDensity = PRINTER.printDensity;
+	        this.printBreakTime = PRINTER.printBreakTime;
+			let config = {
+				heatTime: this.heatTime,
+				heatInterval: this.heatInterval,
+				printDensity: this.printDensity,
+				printBreakTime: this.printBreakTime
+			};
+			window.localStorage.setItem('config', JSON.stringify(config));
 		},
 		handleTextAlignChange: function(value){
 			this.textAlign = value;
