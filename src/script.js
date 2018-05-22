@@ -395,6 +395,7 @@ var app = new Vue({
 		handleRotateBtnClick: function(){
 			var obj = this.canvas.getActiveObject();
 			if(!obj) return;
+			if(obj.lockRotation) return;
 
             var ctx = this.canvas.contextContainer,
                 imgWidth = obj.width,
@@ -583,6 +584,7 @@ var app = new Vue({
 			lockScalingX: true,
 			lockMovementX: true,
 			lockMovementY: true,
+			lockRotation: true,
 			hoverCursor: 'default',
 			excludeFromExport: true
 		});
@@ -645,6 +647,24 @@ var app = new Vue({
 			//this.canvas.setZoom(this.camera.getZoom());
 			//this.canvas.absolutePan(this.camera.getCenter());
 		});
+
+		var timeout = null;
+
+		fabric.Canvas.prototype.disable = function() {
+			this.set({'selection': false});
+		    this.getObjects().forEach(function(o) {
+		    	if(typeof o.wasSelectable == 'undefined') o.wasSelectable = o.selectable;
+				o.selectable = false;
+			});
+	    }
+	    fabric.Canvas.prototype.enable = function() {
+	    	this.set({'selection': true});
+		    this.getObjects().forEach(function(o) {
+				o.selectable = o.wasSelectable;
+			});
+	    }
+	    
+	    this.canvas.disable();
 
 		window.addEventListener('keydown', e => {
 			
@@ -720,39 +740,60 @@ var app = new Vue({
 			this.camera.setCenter(new fabric.Point(camPos.x - dx, camPos.y - dy));
 			this.canvas.absolutePan(this.camera.getCenter());
 		};
-		window.addEventListener('mousemove', e =>{
+		this.canvas.upperCanvasEl.addEventListener('mousemove', e =>{
+			clearTimeout(timeout);
 			handleMove(e);
 			mouse.x = e.clientX;
 			mouse.y = e.clientY;
 		});
-		window.addEventListener("mousedown", (e)=>{
+		this.canvas.upperCanvasEl.addEventListener("mousedown", (e)=>{
+			this.canvas.enable();
+			this.canvas._onMouseDown(e)
+			
 			if(this.keys[32]) {
 				this.isPanningMode = true;
 			}
 		}, false);
 		window.addEventListener("mouseup", (e)=>{
+			if(timeout) clearTimeout(timeout);
+			this.canvas.disable();
 			this.isPanningMode = false;
 		}, false);
 		window.addEventListener("mouseout", (e)=>{
 			this.isPanningMode = false;
 		}, false);
-		window.addEventListener("touchstart", (e)=>{
+
+			
+
+		this.canvas.upperCanvasEl.addEventListener("touchstart", (e)=>{
+			timeout = setTimeout(()=>{
+				this.canvas.enable();
+				this.canvas._onMouseDown(e);
+				this.isPanningMode = false;
+			},400);
+			mouse.x = e.touches[0].clientX;
+			mouse.y = e.touches[0].clientY;
+			var activeObjects = this.canvas.getActiveObjects();
 			this.isTouching = true;
-			if(e.touches && e.touches.length == 2) {
-				mouse.x = e.touches[0].clientX;
-				mouse.y = e.touches[0].clientY;
+			if(activeObjects.length===0) {
 				this.isPanningMode = true;
-			}
+			} 
 		}, false);
-		window.addEventListener("touchmove", e=>{
+		this.canvas.upperCanvasEl.addEventListener("touchmove", e=>{
+			clearTimeout(timeout);
 			handleMove(e);
 			mouse.x = e.touches[0].clientX;
 			mouse.y = e.touches[0].clientY;
 		}, false);
 		window.addEventListener("touchend", e=>{
-			if(e.touches && e.touches.length != 2) {
-				this.isTouching = false;
+			if(e.touches.length === 0) {
 				this.isPanningMode = false;
+				this.isTouching = false;
+				var activeObjects = this.canvas.getActiveObjects();
+				if(activeObjects.length===0) {
+					clearTimeout(timeout);
+					this.canvas.disable();
+				}
 			}
 		}, false);
 		_container.addEventListener("mousewheel", e=>{
