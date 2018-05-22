@@ -290,6 +290,20 @@ var app = new Vue({
 		},
 		handleTextBtnClick: function(){
 			this.textValue = 'Enter text';
+			var activeObjects = this.canvas.getActiveObjects();
+			activeObjects.forEach(object => {
+				if(object.type == 'image' && object.meta) {
+					console.log('meta', object.meta);
+					let date = object.meta.DateTimeOriginal || object.meta.DateTime;
+					if(date) {
+						date = moment(date, "YYYY:MM:DD kk:mm:ss");
+						if(date.isValid()) {
+							this.textValue = date.format("MMM D, YYYY");
+						}
+						console.log(date);
+					}
+				}
+			});
 			let iText = new fabric.IText(this.textValue, {
 				width: this.pageWidth,
 				top: 0,
@@ -508,11 +522,16 @@ var app = new Vue({
 					const image = new Image();
 					image.onload = () => {
 						const aspect = image.width / image.height;
-						this.canvas.add(new fabric.Image(image, {
+						let fabImage = new fabric.Image(image, {
 							lockUniScaling: true,
 							scaleX: this.pageWidth / image.width,
 							scaleY: this.pageWidth / (image.height * aspect)
-						}));
+						});
+						EXIF.getData(image, function() {
+							let meta = EXIF.getAllTags(this);
+							fabImage.set({'meta': meta});
+					    });
+						this.canvas.add(fabImage);
 						this.imageDialogVisible = false;
 						upload.clearFiles();
 						const objects = this.canvas.getObjects();
