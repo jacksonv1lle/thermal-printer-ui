@@ -1,21 +1,4 @@
 "use strict";
-var Camera = function(centerPoint){
-	this.center = centerPoint || new fabric.Point(0,0);
-	this.zoom = 1;
-};
-Camera.prototype.setCenter = function(center){
-	this.center = center;
-};
-Camera.prototype.getCenter = function(center){
-	return this.center;
-};
-Camera.prototype.setZoom = function(n){
-	this.zoom = n;
-};
-Camera.prototype.getZoom = function(){
-	return this.zoom;
-};
-
 let mouse = {
 	x: 0,
 	y: 0
@@ -233,8 +216,11 @@ var app = new Vue({
 	data: {
 		pageWidth: 384,
 		pageHeight: 800,
-		camera: new Camera(),
 		zoom: 1,
+		maxZoom: 2,
+		minZoom: 0.1,
+		vx: 0,
+		vy: 0,
 		activeObjects: [],
 		imageDialogVisible: false,
 		threshold: 127,
@@ -290,8 +276,8 @@ var app = new Vue({
 		},
 		getPageData:function(){
 			var ctx = this.canvas.contextContainer,
-				center = this.camera.getCenter();
-			var imageData = ctx.getImageData(-center.x*window.devicePixelRatio, -center.y*window.devicePixelRatio, this.pageWidth*this.camera.zoom*window.devicePixelRatio, this.pageHeight*this.camera.zoom*window.devicePixelRatio);
+				center = new fabric.Point(this.vx, this.vy);
+			var imageData = ctx.getImageData(-center.x*window.devicePixelRatio, -center.y*window.devicePixelRatio, this.pageWidth*this.zoom*window.devicePixelRatio, this.pageHeight*this.zoom*window.devicePixelRatio);
 			return imageData;
 		},
 		handleTextBtnClick: function(){
@@ -366,6 +352,58 @@ var app = new Vue({
 			this.imageDialogVisible = false;
 			upload.clearFiles();
 		},
+		handleUpBtnClick: function(){
+			var activeObjects = this.canvas.getActiveObjects();
+			activeObjects.forEach(object => {
+				if(object.lockMovementY) return;
+				let left = object.left;
+				let top = object.top;
+				object.set({
+					left: left, 
+					top: top - 1
+				});
+			});
+			this.canvas.renderAll();
+		},
+		handleDownBtnClick: function(){
+			var activeObjects = this.canvas.getActiveObjects();
+			activeObjects.forEach(object => {
+				if(object.lockMovementY) return;
+				let left = object.left;
+				let top = object.top;
+				object.set({
+					left: left, 
+					top: top + 1
+				});
+			});
+			this.canvas.renderAll();
+		},
+		handleLeftBtnClick: function(){
+			var activeObjects = this.canvas.getActiveObjects();
+			activeObjects.forEach(object => {
+				if(object.lockMovementX) return;
+				let left = object.left;
+				let top = object.top;
+				object.set({
+					left: left - 1, 
+					top: top
+				});
+			});
+			this.canvas.renderAll();
+		},
+		handleRightBtnClick: function(){
+			var activeObjects = this.canvas.getActiveObjects();
+			activeObjects.forEach(object => {
+				if(object.lockMovementX) return;
+				let left = object.left;
+				let top = object.top;
+				object.set({
+					left: left + 1, 
+					top: top
+				});
+			});
+			this.canvas.renderAll();
+		},
 		handleRemoveBtnClick: function(){
 			/*Remove selected item(s)*/
 			var activeObjects = this.canvas.getActiveObjects();
@@ -435,8 +473,8 @@ var app = new Vue({
 			if(this.filter == '2') data = applyBayerMatrix(data, parseInt(this.bayerSize));
 			if(this.filter == '3') data = applyGreyScale(data, this.threshold);
 			var ctx = this.canvas.contextContainer;
-			var center = this.camera.getCenter();
-			ctx.putImageData(data, -center.x*window.devicePixelRatio, -center.y*window.devicePixelRatio, 0, 0, this.pageWidth*this.camera.zoom*window.devicePixelRatio, this.pageHeight*this.camera.zoom*window.devicePixelRatio);
+			var center = new fabric.Point(this.vx, this.vy);
+			ctx.putImageData(data, -center.x*window.devicePixelRatio, -center.y*window.devicePixelRatio, 0, 0, this.pageWidth*this.zoom*window.devicePixelRatio, this.pageHeight*this.zoom*window.devicePixelRatio);
 		},
 		handleImageDialogConfirm: function(){
 			const upload = this.$refs.upload;
@@ -464,7 +502,7 @@ var app = new Vue({
 			}
 		},
 		handleCenterBtnClick: function(){
-			this.centerViewport();
+			console.log('to do...');
 		},
 		handleChange: function(){console.log('change')},
 		handleRemove: function(){console.log('remove')},
@@ -473,9 +511,9 @@ var app = new Vue({
 			this.print();
 		},
 		handleScaleChange: function(value){
-			window.localStorage.setItem('zoom', value);
-			this.canvas.setZoom(this.camera.getZoom());
-			this.canvas.absolutePan(this.camera.getCenter());
+			window.localStorage.setItem('zoom', this.zoom);
+			this.canvas.setZoom(this.zoom);
+			this.canvas.absolutePan(new fabric.Point(this.vx, this.vy));
 		},
 		handlePrintDialogCancel: function(){
 			this.printStatus = PRINT_STATUS.IDLE;
@@ -527,14 +565,6 @@ var app = new Vue({
 				};
 				printChunk(0);
 			});
-		},
-		centerViewport: function(){
-			/*const left = this.pageWidth / 2,
-				  top = this.pageHeight / 2,
-				  center = this.canvas.getCenter(),
-				  zoom = this.camera.getZoom();
-			this.camera.setCenter(new fabric.Point(-this.canvas.width/2 + left * (zoom) , -this.canvas.height/2 + top * (zoom)));
-			this.canvas.absolutePan(this.camera.getCenter());*/
 		}
 	},
 	mounted: function(){
@@ -544,7 +574,6 @@ var app = new Vue({
 			this.filter = settings.filter || this.filter;
 			this.threshold = parseInt(settings.threshold) || this.threshold;
 			this.zoom = parseFloat(settings.zoom) || this.zoom;
-			this.camera.setZoom(this.zoom);
 	   		this.pageHeight = parseFloat(settings.pageHeight) || this.pageHeight;
 			if(settings.config) {
 				try{
@@ -606,8 +635,7 @@ var app = new Vue({
 		this.canvas.setHeight(_container.offsetHeight);
 		this.canvas.calcOffset();
 
-		this.centerViewport();
-		this.canvas.setZoom(this.camera.getZoom())
+		this.canvas.setZoom(this.zoom)
 
 		window.addEventListener('resize', e => {
 			this.canvas.setWidth(_container.offsetWidth);
@@ -643,25 +671,26 @@ var app = new Vue({
 	   		if(obj.type !== 'i-text') return;
 	   		this.textValue = obj.text;
 	   })
-	   .on('before:render', ()=>{
-			//this.canvas.setZoom(this.camera.getZoom());
-			//this.canvas.absolutePan(this.camera.getCenter());
-		});
 
 		var timeout = null;
+
+		window.test = () => {
+			console.log(this.canvas.getObjects());
+		};
 
 		fabric.Canvas.prototype.disable = function() {
 			this.set({'selection': false});
 		    this.getObjects().forEach(function(o) {
-		    	if(typeof o.wasSelectable == 'undefined') o.wasSelectable = o.selectable;
 				o.selectable = false;
 			});
+			this.isEnabled = false;
 	    }
 	    fabric.Canvas.prototype.enable = function() {
 	    	this.set({'selection': true});
 		    this.getObjects().forEach(function(o) {
-				o.selectable = o.wasSelectable;
+				o.selectable = true;
 			});
+			this.isEnabled = true;
 	    }
 	    
 	    this.canvas.disable();
@@ -680,45 +709,33 @@ var app = new Vue({
 		    		});
 		    		break;
 		    	}
-		    	/*case 38: {
+		    	case 38: {
 		    		//up
-		    		let pos = this.camera.getCenter();
-		    		this.camera.setCenter(new fabric.Point(pos.x, pos.y + 10));
+		    		this.handleUpBtnClick();
 		    		break;	
 		    	}
 	    		case 39: {
 	    			//right
-		    		let pos = this.camera.getCenter();
-		    		this.camera.setCenter(new fabric.Point(pos.x - 10, pos.y));
+		    		this.handleRightBtnClick();
 	    			break;	
 	    		}
     			case 40: {
     				//down
-		    		let pos = this.camera.getCenter();
-		    		this.camera.setCenter(new fabric.Point(pos.x, pos.y - 10));
+		    		this.handleDownBtnClick();
     				break;	
     			}
 				case 37: {
 					//left
-		    		let pos = this.camera.getCenter();
-		    		this.camera.setCenter(new fabric.Point(pos.x + 10, pos.y));
+		    		this.handleLeftBtnClick();
 					break;	
-				}*/
+				}
 	    		default: break;
 		    }
 		    if(this.keys[17] && this.keys[187]) {
 		    	//zoom out
-		    	e.preventDefault();
-		    	let zoom = this.camera.getZoom();
-		    	this.camera.setZoom(zoom + 0.2);
-				this.centerViewport();
 		    }
 		    if(this.keys[17] && this.keys[189]) {
 		    	//zoom in
-		    	e.preventDefault();
-		    	let zoom = this.camera.getZoom();
-		    	this.camera.setZoom(zoom - 0.2);
-				this.centerViewport();
 		    }
 		});
 		window.addEventListener('keyup', e => {
@@ -736,31 +753,37 @@ var app = new Vue({
 
 			const dx = clientX - mouse.x;
 			const dy = clientY - mouse.y;
-			const camPos = this.camera.getCenter();
-			this.camera.setCenter(new fabric.Point(camPos.x - dx, camPos.y - dy));
-			this.canvas.absolutePan(this.camera.getCenter());
+
+			this.vx -= dx;
+			this.vy -= dy;
+			this.canvas.absolutePan(new fabric.Point(this.vx, this.vy));
 		};
-		this.canvas.upperCanvasEl.addEventListener('mousemove', e =>{
-			clearTimeout(timeout);
+		window.addEventListener('mousemove', e =>{
 			handleMove(e);
 			mouse.x = e.clientX;
 			mouse.y = e.clientY;
 		});
 		this.canvas.upperCanvasEl.addEventListener("mousedown", (e)=>{
-			this.canvas.enable();
-			this.canvas._onMouseDown(e)
+			if(!this.canvas.isEnabled) {
+				this.canvas.enable();
+				this.canvas._onMouseDown(e);
+			}
 			
 			if(this.keys[32]) {
 				this.isPanningMode = true;
+				this.canvas.disable();
 			}
 		}, false);
 		window.addEventListener("mouseup", (e)=>{
 			if(timeout) clearTimeout(timeout);
-			this.canvas.disable();
+			this.canvas.enable();
 			this.isPanningMode = false;
 		}, false);
 		window.addEventListener("mouseout", (e)=>{
-			this.isPanningMode = false;
+			if(e.relatedTarget === document.querySelector('html')) {
+				console.log('mouseout');
+				this.isPanningMode = false;
+			}
 		}, false);
 
 			
@@ -797,9 +820,27 @@ var app = new Vue({
 			}
 		}, false);
 		_container.addEventListener("mousewheel", e=>{
-			const camPos = this.camera.getCenter();
-			this.camera.setCenter(new fabric.Point(camPos.x + e.deltaX, camPos.y + e.deltaY));
-			this.canvas.absolutePan(this.camera.getCenter());
+			e.preventDefault();
+			if(this.keys[17] && this.keys[18]) {
+				//Ctrl + Alt are pressed
+				if(e.deltaY > 0) {
+					this.zoom -= 0.1;
+					this.zoom = Math.max(this.zoom, this.minZoom);
+				}
+				else {
+					this.zoom += 0.1;
+					this.zoom = Math.min(this.zoom, this.maxZoom);
+				}
+				window.localStorage.setItem('zoom', this.zoom);
+				this.canvas.setZoom(this.zoom);
+				this.canvas.absolutePan(new fabric.Point(this.vx, this.vy));
+			} else {
+				this.vx += e.deltaX;
+				this.vy += e.deltaY;
+				this.canvas.absolutePan(new fabric.Point(this.vx, this.vy));
+			}
+
+
 		}, false);
 	}
 });

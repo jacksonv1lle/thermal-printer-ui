@@ -127,6 +127,16 @@
 							</template>
 						</template>
 						<div class="app-block">
+							<div class="app-item">
+								<div class="keys">
+									<el-button icon="el-icon-caret-top" v-on:click="handleUpBtnClick"></el-button>
+									<el-button icon="el-icon-caret-left" v-on:click="handleLeftBtnClick"></el-button>
+									<el-button icon="el-icon-caret-bottom" v-on:click="handleDownBtnClick"></el-button>
+									<el-button icon="el-icon-caret-right" v-on:click="handleRightBtnClick"></el-button>
+								</div>
+							</div>
+						</div>
+						<div class="app-block">
 							<div class="app-item"><el-button icon="el-icon-delete" v-on:click="handleRemoveBtnClick">Remove</el-button></div>
 						</div>
 					</div>
@@ -171,9 +181,9 @@
 							<div class="app-item-label">Zoom</div>
 							<template>
 								<el-slider
-									v-model="camera.zoom"
-									:min="0.1"
-									:max="2"
+									v-model="zoom"
+									:min="minZoom"
+									:max="maxZoom"
 									:step="0.1"
 									@change="handleScaleChange">
 								</el-slider>

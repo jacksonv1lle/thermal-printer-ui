@@ -116,6 +116,22 @@ canvas{
 .el-radio.is-bordered + .el-radio.is-bordered {
 	margin: 12px 0 0;
 }
+.keys {
+	display: grid;
+    width: 170px;
+}
+.keys .el-button {
+	margin: 0;
+}
+.keys .el-button:first-child {
+    grid-row: 1/2;
+    grid-column: 2/3;
+}
+.keys .el-button:nth-child(2),
+.keys .el-button:nth-child(3),
+.keys .el-button:nth-child(4) {
+	grid-row: 2/3;
+}
 @media screen and (min-width: 640px) {
 	.app {
 		display: flex;
