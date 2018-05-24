@@ -12,6 +12,9 @@ const PRINTER = {
     printBreakTime: 2,	
 };
 
+const handleSize = 30;
+const handleColor = "#000";
+
 function applyGreyScale(data, threshold) {
 	var buffer = data.data,
 		len = buffer.length,
@@ -227,8 +230,6 @@ var app = new Vue({
 		zoom: 1,
 		maxZoom: 2,
 		minZoom: 0.1,
-		vx: 0,
-		vy: 0,
 		activeObjects: [],
 		imageDialogVisible: false,
 		threshold: 127,
@@ -239,7 +240,6 @@ var app = new Vue({
 		printingDialogVisible: false,
 		printingComplete: true,
 		controlsOpen: false,
-		isTouching: false,
 
 		/* i-text props */
 		textValue: 'Hi there',
@@ -284,8 +284,8 @@ var app = new Vue({
 		},
 		getPageData:function(){
 			var ctx = this.canvas.contextContainer,
-				center = new fabric.Point(this.vx, this.vy);
-			var imageData = ctx.getImageData(-center.x*window.devicePixelRatio, -center.y*window.devicePixelRatio, this.pageWidth*this.zoom*window.devicePixelRatio, this.pageHeight*this.zoom*window.devicePixelRatio);
+				center = new fabric.Point(this.canvas.viewportTransform[4], this.canvas.viewportTransform[5]);
+			var imageData = ctx.getImageData(center.x*window.devicePixelRatio, center.y*window.devicePixelRatio, this.pageWidth*this.zoom*window.devicePixelRatio, this.pageHeight*this.zoom*window.devicePixelRatio);
 			return imageData;
 		},
 		handleTextBtnClick: function(){
@@ -309,7 +309,11 @@ var app = new Vue({
 				left: 0,
 				fontSize: 20,
 				fontFamily: 'Helvetica',
-				backgroundColor: '#fff'
+				backgroundColor: '#fff',
+				cornerSize: handleSize,
+				borderColor: handleColor,
+				cornerColor: handleColor,
+				transparentCorners: false,
 			})
 			iText.setControlsVisibility({
 				mt: false, 
@@ -502,14 +506,14 @@ var app = new Vue({
 			this.canvas.calcOffset();
 		},
 		postRender: function(){
-			if(this.isTouching) return;
+			if(this.canvas.isDragging) return;
 			var data = this.getPageData();
 			if(this.filter == '1') data = applyFloydSteinberg(data);
 			if(this.filter == '2') data = applyBayerMatrix(data, parseInt(this.bayerSize));
 			if(this.filter == '3') data = applyGreyScale(data, this.threshold);
 			var ctx = this.canvas.contextContainer;
-			var center = new fabric.Point(this.vx, this.vy);
-			ctx.putImageData(data, -center.x*window.devicePixelRatio, -center.y*window.devicePixelRatio, 0, 0, this.pageWidth*this.zoom*window.devicePixelRatio, this.pageHeight*this.zoom*window.devicePixelRatio);
+			var center = center = new fabric.Point(this.canvas.viewportTransform[4], this.canvas.viewportTransform[5]);
+			ctx.putImageData(data, center.x*window.devicePixelRatio, center.y*window.devicePixelRatio, 0, 0, this.pageWidth*this.zoom*window.devicePixelRatio, this.pageHeight*this.zoom*window.devicePixelRatio);
 		},
 		handleImageDialogConfirm: function(){
 			const upload = this.$refs.upload;
@@ -523,6 +527,10 @@ var app = new Vue({
 						const aspect = image.width / image.height;
 						let fabImage = new fabric.Image(image, {
 							lockUniScaling: true,
+							cornerSize: handleSize,
+							borderColor: handleColor,
+							cornerColor: handleColor,
+							transparentCorners: false,
 							scaleX: this.pageWidth / image.width,
 							scaleY: this.pageWidth / (image.height * aspect)
 						});
@@ -552,8 +560,11 @@ var app = new Vue({
 		},
 		handleScaleChange: function(value){
 			window.localStorage.setItem('zoom', this.zoom);
-			this.canvas.setZoom(this.zoom);
-			this.canvas.absolutePan(new fabric.Point(this.vx, this.vy));
+			let center = this.canvas.getCenter();
+			//console.log(center);
+			this.canvas.zoomToPoint({ x: center.left, y: center.top }, this.zoom);
+			//this.canvas.setZoom(this.zoom);
+			//this.canvas.absolutePan(new fabric.Point(this.vx, this.vy));
 		},
 		handlePrintDialogCancel: function(){
 			this.printStatus = PRINT_STATUS.IDLE;
@@ -655,12 +666,17 @@ var app = new Vue({
 			lockMovementY: true,
 			lockRotation: true,
 			hoverCursor: 'default',
-			excludeFromExport: true
+			excludeFromExport: true,
+			cornerSize: handleSize,
+			borderColor: handleColor,
+			cornerColor: handleColor,
+			transparentCorners: false,
 		});
-
+ 		
+ 		/* Only allow rect to be scaled from the bottom */
 		page.setControlsVisibility({
 			mt: false, 
-			mb: true, /* Only allow rect to be scaled from the bottom */
+			mb: true,
 			ml: false, 
 			mr: false, 
 			bl: false,
@@ -783,115 +799,151 @@ var app = new Vue({
 		window.addEventListener('keyup', e => {
 			this.keys[e.keyCode] = false;
 		    switch(e.keyCode){
+		    	case 18:
+		    		e.preventDefault();
+		    		break;
 		    	default:
 		    		break;
 		    }
 		});
-		const handleMove = e => {
-			if(!this.isPanningMode) return;
-			e.preventDefault();
-			const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-			const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-			const dx = clientX - mouse.x;
-			const dy = clientY - mouse.y;
-
-			this.vx -= dx;
-			this.vy -= dy;
-			this.canvas.absolutePan(new fabric.Point(this.vx, this.vy));
-		};
-		window.addEventListener('mousemove', e =>{
-			handleMove(e);
-			mouse.x = e.clientX;
-			mouse.y = e.clientY;
-		});
-		this.canvas.upperCanvasEl.addEventListener("mousedown", (e)=>{
-			/*if(!this.canvas.isEnabled) {
-				this.canvas.enable();
-				this.canvas._onMouseDown(e);
-			}*/
-			
-			if(this.keys[32]) {
-				this.isPanningMode = true;
-				//this.canvas.disable();
+		/* Check if user has switched away from window every second */
+		setInterval(()=>{
+			if(!document.hasFocus()){
+				this.keys = [];
 			}
-		}, false);
-		window.addEventListener("mouseup", (e)=>{
-			//if(timeout) clearTimeout(timeout);
-			//this.canvas.enable();
-			this.isPanningMode = false;
-		}, false);
-		window.addEventListener("mouseout", (e)=>{
-			if(e.relatedTarget === document.querySelector('html')) {
-				console.log('mouseout');
-				this.isPanningMode = false;
-			}
-		}, false);
+		}, 1000);
 
-			
+		let posX = 0;
+		let posY = 0;
 
-
-		// Touch Point cache
-		var finger_dist = 0;
-		var timeout;
-
-		function get_distance(e) {
-			var diffX = e.targetTouches[0].clientX - e.targetTouches[1].clientX;
-			var diffY = e.targetTouches[0].clientY - e.targetTouches[1].clientY;
-			return 1/(Math.sqrt(diffX * diffX + diffY * diffY)); // Pythagorean theorem
+		if(fabric.isTouchSupported) {
+			this.canvas.disable();
 		}
-		this.canvas.upperCanvasEl.addEventListener("touchstart", ev => {
-	    	this.canvas.disable();
-			this.isTouching = true;
-			if(ev.targetTouches.length == 1) {
-				timeout = setTimeout(()=>{
-					this.canvas.enable();
-					this.canvas._onMouseDown(ev);
-					this.isPanningMode = false;
-				},400);
+		let firstzoom = this.zoom;
+		let lastzoom = this.zoom;
+		this.canvas.on('touch:gesture', opt => {
+			var e = opt.e;
+			let fingers = opt.self.fingers;
+			let scale = opt.self.scale;
+			let rotation = opt.self.rotation;
+			let x = opt.self.x;
+			let y = opt.self.y;
+			let state = opt.self.state;
+			if(state === 'start'){
+				firstzoom = this.zoom;
+			}
+			let zoom = firstzoom * scale;
 
-				mouse.x = ev.touches[0].clientX;
-				mouse.y = ev.touches[0].clientY;
-				var activeObjects = this.canvas.getActiveObjects();
-				if(activeObjects.length===0) {
-					this.isPanningMode = true;
+			if(zoom < this.minZoom) {
+				zoom = this.minZoom;
+			}
+			if(zoom > this.maxZoom){
+				this.zoom = this.maxZoom;
+			}
+			this.zoom = zoom;
+
+			this.canvas.zoomToPoint({ x: x, y: y }, this.zoom);
+
+		});
+		this.canvas.on('touch:longpress', opt => {
+			if(fabric.isTouchSupported) {
+				this.canvas.enable();
+    			this.canvas.isDragging = false;
+				let x = opt.self.x;
+				let y = opt.self.y;
+				let state = opt.self.state;
+				if(state === 'start'){
+					let pointer = this.canvas.getPointer(opt.e, true);
+					let objects = this.canvas.getObjects();
+					let hitObject;
+					for(var i = objects.length-1;i>=0;i--){
+						if(this.canvas.containsPoint(opt.e, objects[i], new fabric.Point(pointer.x, pointer.y))) {
+							hitObject = objects[i];
+							i=-1;
+						}
+					}
+					if(hitObject) {
+						this.canvas.setActiveObject(hitObject);	
+						this.canvas.requestRenderAll();
+					}
+				}
+		   		//this.canvas.selection = true;
+			}
+		});
+		this.canvas.on('touch:drag', opt => {
+			let fingers = opt.self.fingers;
+			let x = opt.self.x;
+			let y = opt.self.y;
+			let state = opt.self.state;
+			let start = opt.self.start;
+			if(state == "down") {
+				if(fabric.isTouchSupported || this.keys[32]) {
+					let objects = this.canvas.getObjects();
+					let pointer = this.canvas.getPointer(opt.e, true);
+					let hit = false;
+					
+					objects.forEach(obj=>{
+						if(this.canvas.containsPoint(opt.e, obj, new fabric.Point(pointer.x, pointer.y))) {
+							hit = true;
+						}
+					});
+					if(!hit) {
+						this.canvas.disable();
+					}
+	    			this.canvas.isDragging = true;
+					
+				    posX = start.x;
+				    posY = start.y;
+				}
+			} else if(state == "move"){
+				if (this.canvas.isDragging && !this.canvas.isEnabled) {
+					this.canvas.relativePan(new fabric.Point(x - posX, y - posY));
+					this.canvas.requestRenderAll();
+				}
+				posX = x;
+				posY = y;
+			} else if(state == "up"){
+				if(fabric.isTouchSupported) {
+					var activeObjects = this.canvas.getActiveObjects();
+					if(activeObjects.length===0) {
+						this.canvas.disable();
+					}
+				}
+				this.canvas.isDragging = false;
+			}
+		});
+			
+		this.canvas.on('mouse:move', opt => {
+			if(this.canvas.isDragging) return;
+			var e = opt.e;
+			posX = e.clientX;
+			posY = e.clientY;
+
+			/*let pointer = this.canvas.getPointer(opt.e, true);
+			let objects = this.canvas.getObjects();
+			let hitObject;
+			let ox = this.canvas.viewportTransform[4];
+			let oy = this.canvas.viewportTransform[5];
+			for(var i = objects.length-1;i>=0;i--){
+				if(this.canvas.containsPoint(opt.e, objects[i], new fabric.Point(pointer.x, pointer.y))) {
+					hitObject = objects[i];
+					i=-1;
 				}
 			}
-			if (ev.targetTouches.length == 2) {
-				this.isPanningMode = false;
-				finger_dist = get_distance(ev);
-			}
-		}, false);
-		this.canvas.upperCanvasEl.addEventListener("touchmove", ev => {
-			if(timeout) clearTimeout(timeout);
-			handleMove(ev);
-			mouse.x = ev.changedTouches[0].clientX;
-			mouse.y = ev.changedTouches[0].clientY;
-			if (ev.targetTouches.length == 2 && ev.changedTouches.length == 2) {
-				var new_finger_dist = get_distance(ev); // Get current distance between fingers
-				this.zoom = this.zoom * Math.abs(finger_dist / new_finger_dist); // Zoom is proportional to change
-				finger_dist = new_finger_dist; // Save current distance for next time
-				this.canvas.setZoom(this.zoom);
-				this.canvas.absolutePan(new fabric.Point(this.vx, this.vy));
-			}
-		}, false);
-		window.addEventListener("touchend", ev => {
-			//ev.preventDefault();
-			if (ev.targetTouches.length == 0) {
-				this.isPanningMode = false;
-				this.isTouching = false;
-				var activeObjects = this.canvas.getActiveObjects();
-				if(activeObjects.length===0) {
-					clearTimeout(timeout);
-					this.canvas.disable();
-				}
-			}
-		}, false);
-		_container.addEventListener("mousewheel", e=>{
+			if(hitObject) {
+				//console.log(hitObject.type);
+			}*/
+		});
+		this.canvas.on('mouse:wheel', opt => {
+			var e = opt.e;
 			e.preventDefault();
+			e.stopPropagation();
 			if(this.keys[17] && this.keys[18]) {
-				//Ctrl + Alt are pressed
-				if(e.deltaY > 0) {
+				//Zoom when Ctrl + Alt are pressed
+				var pointer = this.canvas.getPointer(e, true);
+				this.zoom = this.canvas.getZoom();
+				if(e.deltaY >= this.minZoom) {
 					this.zoom -= 0.1;
 					this.zoom = Math.max(this.zoom, this.minZoom);
 				}
@@ -899,16 +951,14 @@ var app = new Vue({
 					this.zoom += 0.1;
 					this.zoom = Math.min(this.zoom, this.maxZoom);
 				}
-				window.localStorage.setItem('zoom', this.zoom);
-				this.canvas.setZoom(this.zoom);
-				this.canvas.absolutePan(new fabric.Point(this.vx, this.vy));
+				this.canvas.zoomToPoint({ x: e.offsetX, y: e.offsetY }, this.zoom);
+			} else if(this.keys[17]){
+				//Scroll horizontally when ctrl is pressed
+				this.canvas.relativePan(new fabric.Point(e.deltaY, 0));
 			} else {
-				this.vx += e.deltaX;
-				this.vy += e.deltaY;
-				this.canvas.absolutePan(new fabric.Point(this.vx, this.vy));
+				//Scroll vertically
+				this.canvas.relativePan(new fabric.Point(0, e.deltaY));
 			}
-
-
-		}, false);
+		});
 	}
 });
