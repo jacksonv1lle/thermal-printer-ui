@@ -202,11 +202,12 @@ function getGoogleFonts(){
 			document.body.appendChild(_fontDiv);
 			var style = '';
 			fontList = fonts.split('|').map(font=>{
-				var parsedFont = font.replace(/\+/g, ' ');
+				let value = font.replace(/\+/g, '-');
+				let label = font.replace(/\+/g, ' ');
 				var _span = document.createElement('span');
-				_span.style.fontFamily = parsedFont;
+				_span.style.fontFamily = label;
 				_fontDiv.appendChild(_span);
-				style += '.font-'+font + '{font-family:' + parsedFont + '}';
+				style += '.font-'+value + '{font-family:' + label + '}';
 
 				return font;
 			});
@@ -455,10 +456,11 @@ var app = new Vue({
 			this.canvas.renderAll();
 		},
 		handleFontFamilyChange: function(value){
-			this.fontFamily = value.replace(/\+/g, ' ');
+			this.fontFamily = value.replace(/\-/g, ' ');
 			window.localStorage.setItem('fontFamily', this.fontFamily);
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'fontFamily': this.fontFamily});
 			this.canvas.renderAll();
+			console.log(this.fontFamily);
 		},
 		handleInvertBtnClick: function(){
 			if(this.activeObjects[0] && this.activeObjects[0].type == 'i-text') {
@@ -644,8 +646,15 @@ var app = new Vue({
 		var _container = _canvas.parentNode;
 		var googleFonts = getGoogleFonts();
 		if(googleFonts) {
-			googleFonts = googleFonts.map(font=>{return {value:font,label:font.replace(/\+/g, ' ')}});
+			googleFonts = googleFonts.map(font=>{
+				let value = font.replace(/\+/g, '-');
+				let label = font.replace(/\+/g, ' ');
+				return {
+					value:font.replace(/\+/g, '-'),
+					label:font.replace(/\+/g, ' ')
+				}});
 			this.fontFamilyList = this.fontFamilyList.concat(googleFonts);
+			console.log(this.fontFamilyList);
 		}
 		this.canvas = new fabric.Canvas(_canvas,{
 			selectionLineWidth: 2,
