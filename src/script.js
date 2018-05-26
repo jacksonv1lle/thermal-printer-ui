@@ -893,21 +893,26 @@ var app = new Vue({
 			let state = opt.self.state;
 			let start = opt.self.start;
 			if(state == "down") {
-				if(fabric.isTouchSupported || this.keys[32]) {
+				if(fabric.isTouchSupported) {
 					let objects = this.canvas.getObjects();
 					let pointer = this.canvas.getPointer(opt.e, true);
 					let hit = false;
-					
 					objects.forEach(obj=>{
 						if(this.canvas.containsPoint(opt.e, obj, new fabric.Point(pointer.x, pointer.y))) {
 							hit = true;
 						}
 					});
+					console.log(hit);
 					if(!hit) {
 						this.canvas.disable();
 					}
 	    			this.canvas.isDragging = true;
 					
+				    posX = start.x;
+				    posY = start.y;
+				} else if(this.keys[32]) {
+					this.canvas.disable();
+					this.canvas.isDragging = true;
 				    posX = start.x;
 				    posY = start.y;
 				}
