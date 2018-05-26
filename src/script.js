@@ -374,13 +374,11 @@ var app = new Vue({
 			this.canvas.renderAll();
 		},
 		handleTextValueChange: function(value){
-			console.log(value);
 			//this.lineHeight = value;
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'text': value});
 			this.canvas.renderAll();
 		},
 		handleFontSizeChange(value){
-			console.log(value);
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'fontSize': value});
 			this.canvas.renderAll();
 		},
@@ -460,12 +458,10 @@ var app = new Vue({
 			window.localStorage.setItem('fontFamily', this.fontFamily);
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'fontFamily': this.fontFamily});
 			this.canvas.renderAll();
-			console.log(this.fontFamily);
 		},
 		handleInvertBtnClick: function(){
 			if(this.activeObjects[0] && this.activeObjects[0].type == 'i-text') {
 				let color = this.activeObjects[0].backgroundColor == '#fff' ? '#fff' : '#000';
-				console.log(color);
 				let backgroundColor = color == '#fff' ? '#000' : '#fff';
 				this.activeObjects[0].set({'backgroundColor': backgroundColor, 'fill': color});
 			}
@@ -654,7 +650,6 @@ var app = new Vue({
 					label:font.replace(/\+/g, ' ')
 				}});
 			this.fontFamilyList = this.fontFamilyList.concat(googleFonts);
-			console.log(this.fontFamilyList);
 		}
 		this.canvas = new fabric.Canvas(_canvas,{
 			selectionLineWidth: 2,
@@ -929,6 +924,8 @@ var app = new Vue({
 					if(activeObjects.length===0) {
 						this.canvas.disable();
 					}
+				} else {
+					this.canvas.enable();
 				}
 				this.canvas.isDragging = false;
 			}

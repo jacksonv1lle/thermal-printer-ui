@@ -14,8 +14,8 @@
 			<canvas ref="canvas"></canvas>
 		</div>
 
-		<div v-bind:class="{ 'app-controls': controlsOpen, 'app-controls closed': !controlsOpen  }">			
-				<div class="app-toggle">
+		<div v-bind:class="{ 'app-controls': controlsOpen, 'app-controls closed': !controlsOpen  }" v-cloak>			
+			<div class="app-toggle">
 				<el-button icon="el-icon-arrow-up" circle @click="handleToggleClick"></el-button>
 				<el-button icon="el-icon-arrow-down" circle @click="handleToggleClick"></el-button>
 			</div>
