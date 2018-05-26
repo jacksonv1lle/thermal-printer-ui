@@ -751,6 +751,7 @@ var app = new Vue({
 				o.selectable = false;
 			});
 			this.discardActiveObject();
+			this.requestRenderAll();
 			this.isEnabled = false;
 	    }
 	    fabric.Canvas.prototype.enable = function() {
@@ -830,7 +831,8 @@ var app = new Vue({
 			this.canvas.disable();
 		}
 		let firstzoom = this.zoom;
-		let lastzoom = this.zoom;
+		let lastX = 0;
+		let lastY = 0;
 		this.canvas.on('touch:gesture', opt => {
 			var e = opt.e;
 			let fingers = opt.self.fingers;
@@ -841,6 +843,8 @@ var app = new Vue({
 			let state = opt.self.state;
 			if(state === 'start'){
 				firstzoom = this.zoom;
+				lastX = x;
+				lastY = y;
 			}
 			let zoom = firstzoom * scale;
 
@@ -878,6 +882,13 @@ var app = new Vue({
 					}
 				}
 		   		//this.canvas.selection = true;
+			}
+		});
+		this.canvas.on('touch:shake', opt => {
+			this.canvas.discardActiveObject();
+			this.canvas.requestRenderAll();
+			if(fabric.isTouchSupported) {
+				this.canvas.disable();
 			}
 		});
 		this.canvas.on('touch:drag', opt => {
