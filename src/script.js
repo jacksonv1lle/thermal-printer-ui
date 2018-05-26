@@ -446,8 +446,9 @@ var app = new Vue({
 			/*Remove selected item(s)*/
 			var activeObjects = this.canvas.getActiveObjects();
 			if (activeObjects) {
-				this.canvas.discardActiveObject();
 				activeObjects.forEach(object => {
+					if(object.type === 'rect') return; //Do not remove the page object
+					this.canvas.discardActiveObject();
 					this.canvas.remove(object);
 				});
 			}
