@@ -26,7 +26,6 @@
 								<el-button-group>
 									<el-button icon="el-icon-edit" v-on:click="handleTextBtnClick">Text</el-button>
 									<el-button icon="el-icon-picture" v-on:click="imageDialogVisible = true">Image</el-button>
-									<el-button type="primary" icon="el-icon-printer" v-on:click="handlePrintBtnClick">Print</el-button>
 								</el-button-group>
 							</div>
 							<el-dialog
@@ -231,6 +230,7 @@
 						</div>
 					</div>
 				</div>
+				<el-button type="primary" icon="el-icon-printer" v-on:click="handlePrintBtnClick" class="btn-print">Print</el-button>
 			</div>
 		</div>
 	</div>

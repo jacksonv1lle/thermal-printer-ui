@@ -134,6 +134,16 @@ canvas{
 .keys .el-button:nth-child(4) {
 	grid-row: 2/3;
 }
+.btn-print {
+	width: 100%;
+	margin-bottom: 20px;
+}
+.el-button-group {
+	display: flex;
+}
+.el-button-group .el-button {
+	flex: 1 0 auto;
+}
 @media screen and (min-width: 640px) {
 	.app {
 		display: flex;
