@@ -980,7 +980,7 @@ var app = new Vue({
 				this.canvas.relativePan(new fabric.Point(e.deltaY, 0));
 			} else {
 				//Scroll vertically
-				this.canvas.relativePan(new fabric.Point(0, e.deltaY));
+				this.canvas.relativePan(new fabric.Point(e.deltaX, e.deltaY));
 			}
 		});
 	}
