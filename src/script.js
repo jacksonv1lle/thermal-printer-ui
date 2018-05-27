@@ -663,6 +663,8 @@ var app = new Vue({
 			left: 0,
 			top: 0,
 			fill: '#fff',
+			stroke: '#666',
+			strokeWidth: 1,
 			width: this.pageWidth,
 			height: this.pageHeight,
 			//selectable: false,

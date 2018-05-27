@@ -18,7 +18,7 @@ canvas{
 }
 .app-canvas {
 	overflow: hidden;
-    background-color:#ddd;
+    background-color:#aaa;
     height: 100%;
 }
 .app-canvas.active {
@@ -41,6 +41,7 @@ canvas{
 	padding: 0 20px;
 	overflow: auto;
 	width: 100%;
+	background: #fff;
 }
 .app-block {
 	padding: 5px 0;
@@ -52,6 +53,7 @@ canvas{
 	border: 1px solid #e3dfdf;
 	padding: 20px;
 	margin-bottom: 20px;
+	background: #f9f9f9;
 }
 .app-item {
 	padding: 10px;
