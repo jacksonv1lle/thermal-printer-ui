@@ -982,6 +982,7 @@ var app = new Vue({
 					this.zoom += 0.1;
 					this.zoom = Math.min(this.zoom, this.maxZoom);
 				}
+				window.localStorage.setItem('zoom', this.zoom);
 				this.canvas.zoomToPoint({ x: e.offsetX, y: e.offsetY }, this.zoom);
 			} else if(this.keys[17]){
 				//Scroll horizontally when ctrl is pressed
