@@ -549,7 +549,13 @@ var app = new Vue({
 			}
 		},
 		handleCenterBtnClick: function(){
-			console.log('to do...');
+			let left = this.canvas.viewportTransform[4];
+			let top = this.canvas.viewportTransform[5];
+			let center = new fabric.Point(this.canvas.width * 0.5, this.canvas.height * 0.5);
+			let pageObj = this.canvas.getObjects()[0];
+			let pageHalfWidth = pageObj.width * this.zoom * 0.5;
+			let pageHalfHeight = pageObj.height * this.zoom * 0.5;
+			this.canvas.relativePan({x: center.x - left - pageHalfWidth,y: center.y  - top - pageHalfHeight});
 		},
 		handleChange: function(){console.log('change')},
 		handleRemove: function(){console.log('remove')},
