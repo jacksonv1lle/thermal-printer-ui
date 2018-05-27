@@ -555,7 +555,7 @@ var app = new Vue({
 			let pageObj = this.canvas.getObjects()[0];
 			let pageHalfWidth = pageObj.width * this.zoom * 0.5;
 			let pageHalfHeight = pageObj.height * this.zoom * 0.5;
-			this.canvas.relativePan({x: center.x - left - pageHalfWidth,y: center.y  - top - pageHalfHeight});
+			this.canvas.relativePan({x: center.x - left - pageHalfWidth,y: -top + 50});
 		},
 		handleChange: function(){console.log('change')},
 		handleRemove: function(){console.log('remove')},
@@ -704,7 +704,8 @@ var app = new Vue({
 		this.canvas.setHeight(_container.offsetHeight);
 		this.canvas.calcOffset();
 
-		this.canvas.setZoom(this.zoom)
+		this.canvas.setZoom(this.zoom);
+		this.handleCenterBtnClick();
 
 		window.addEventListener('resize', e => {
 			this.canvas.setWidth(_container.offsetWidth);
@@ -724,29 +725,21 @@ var app = new Vue({
 			}
 		};
 		this.canvas.on('after:render', this.postRender)
-	   .on('selection:created', handleActiveObjects)
-	   .on('selection:updated', handleActiveObjects)
-	   .on('selection:cleared', handleActiveObjects)
-	   .on('object:scaling', ()=>{
+	   	.on('selection:created', handleActiveObjects)
+	   	.on('selection:updated', handleActiveObjects)
+	   	.on('selection:cleared', handleActiveObjects)
+	   	.on('object:scaling', ()=>{
 	   		var obj = this.canvas.getActiveObject();
 	   		if(obj.type !== 'rect') return;
 	   		var height = obj.height * obj.scaleY;
 	   		this.pageHeight = height;
 	   		window.localStorage.setItem('pageHeight', height);
-	   })
-	   .on('text:changed', ()=>{
+	   	})
+	   	.on('text:changed', ()=>{
 	   		var obj = this.canvas.getActiveObject();
 	   		if(obj.type !== 'i-text') return;
 	   		this.textValue = obj.text;
-	   })
-
-		var timeout = null;
-
-		window.test = () => {
-			console.log(this.canvas.getObjects());
-		};
-
-		var self = this;
+	   	});
 
 		fabric.Canvas.prototype.disable = function() {
 			console.log('disable');
@@ -950,21 +943,6 @@ var app = new Vue({
 			var e = opt.e;
 			posX = e.clientX;
 			posY = e.clientY;
-
-			/*let pointer = this.canvas.getPointer(opt.e, true);
-			let objects = this.canvas.getObjects();
-			let hitObject;
-			let ox = this.canvas.viewportTransform[4];
-			let oy = this.canvas.viewportTransform[5];
-			for(var i = objects.length-1;i>=0;i--){
-				if(this.canvas.containsPoint(opt.e, objects[i], new fabric.Point(pointer.x, pointer.y))) {
-					hitObject = objects[i];
-					i=-1;
-				}
-			}
-			if(hitObject) {
-				//console.log(hitObject.type);
-			}*/
 		});
 		this.canvas.on('mouse:wheel', opt => {
 			var e = opt.e;
