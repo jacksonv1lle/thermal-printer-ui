@@ -38,10 +38,11 @@ canvas{
     display: flex;
 }
 .app-controls-inner {
-	padding: 0 20px;
+	padding: 20px;
 	overflow: auto;
 	width: 100%;
 	background-color: #f9f9f9;
+	border-top: 1px solid #ddd;
 }
 .app-block {
 	padding: 5px 0;
@@ -138,7 +139,6 @@ canvas{
 }
 .btn-print {
 	width: 100%;
-	margin-bottom: 20px;
 }
 .el-button-group {
 	display: flex;
@@ -163,6 +163,7 @@ canvas{
 	}
 	.app-controls-inner {
 		padding-top: 20px;
+		border-top: none;
 	}
 	.app-controls.closed .app-controls-inner {
 		display: block;
