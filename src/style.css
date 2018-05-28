@@ -24,9 +24,6 @@ canvas{
 .app-canvas.active {
 	cursor: move;
 }
-.el-tabs__header {
-	margin-bottom: 20px;
-}
 .app-controls {
     width: 100%;
     padding: 80px 0px 0px;
@@ -44,7 +41,7 @@ canvas{
 	padding: 0 20px;
 	overflow: auto;
 	width: 100%;
-	background: #f9f9f9;
+	background-color: #f9f9f9;
 }
 .app-block {
 	padding: 5px 0;
