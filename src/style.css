@@ -24,6 +24,9 @@ canvas{
 .app-canvas.active {
 	cursor: move;
 }
+.el-tabs__header {
+	margin-bottom: 20px;
+}
 .app-controls {
     width: 100%;
     padding: 80px 0px 0px;

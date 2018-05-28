@@ -223,14 +223,172 @@ const PRINT_STATUS = {
 	PRINTING: 1,
 	COMPLETE: 2
 };
+const PAGE_WIDTH = 384;
+const MIN_ZOOM = 0.1;
+const MAX_ZOOM = 3;
+
+Vue.component('controls-standard', Vue.extend({
+	template: `
+		<div>
+			<p>Hello {{name}}!</p>
+		</div>
+	`,
+	props: ['name']
+}));
+Vue.component('directions', Vue.extend({
+	template: `
+		<div class="keys">
+			<el-button icon="el-icon-caret-top" v-on:click="handleUpBtnClick"></el-button>
+			<el-button icon="el-icon-caret-left" v-on:click="handleLeftBtnClick"></el-button>
+			<el-button icon="el-icon-caret-bottom" v-on:click="handleDownBtnClick"></el-button>
+			<el-button icon="el-icon-caret-right" v-on:click="handleRightBtnClick"></el-button>
+		</div>
+	`,
+	props: ['canvas'],
+	methods: {
+		handleUpBtnClick: function(){
+			var activeObjects = this.canvas.getActiveObjects();
+			activeObjects.forEach(object => {
+				if(object.lockMovementY) return;
+				let left = object.left;
+				let top = object.top;
+				object.set({
+					left: left, 
+					top: top - 1
+				});
+			});
+			this.canvas.renderAll();
+		},
+		handleDownBtnClick: function(){
+			var activeObjects = this.canvas.getActiveObjects();
+			activeObjects.forEach(object => {
+				if(object.lockMovementY) return;
+				let left = object.left;
+				let top = object.top;
+				object.set({
+					left: left, 
+					top: top + 1
+				});
+			});
+			this.canvas.renderAll();
+		},
+		handleLeftBtnClick: function(){
+			var activeObjects = this.canvas.getActiveObjects();
+			activeObjects.forEach(object => {
+				if(object.lockMovementX) return;
+				let left = object.left;
+				let top = object.top;
+				object.set({
+					left: left - 1, 
+					top: top
+				});
+			});
+			this.canvas.renderAll();
+		},
+		handleRightBtnClick: function(){
+			var activeObjects = this.canvas.getActiveObjects();
+			activeObjects.forEach(object => {
+				if(object.lockMovementX) return;
+				let left = object.left;
+				let top = object.top;
+				object.set({
+					left: left + 1, 
+					top: top
+				});
+			});
+			this.canvas.renderAll();
+		},
+	}
+}));
+Vue.component('button-rotate', Vue.extend({
+	template: `
+		<el-button icon="el-icon-refresh" v-on:click="handleRotateBtnClick">Rotate</el-button>
+	`,
+	props: ['canvas'],
+	methods: {
+		handleRotateBtnClick: function(){
+			var obj = this.canvas.getActiveObject();
+			if(!obj) return;
+			if(obj.lockRotation) return;
+
+            var ctx = this.canvas.contextContainer,
+                imgWidth = obj.width,
+                imgHeight = obj.height,
+                aspect = imgHeight / imgWidth,
+                aspect_ = imgWidth / imgHeight,
+                minWidth = PAGE_WIDTH,
+                minHeight = minWidth * aspect;
+
+            let angle = obj.get('angle');
+            if(angle>=0&&angle<90) angle=90;
+            else if(angle>=90&&angle<180) angle=180;
+            else if(angle>=180&&angle<270) angle=270;
+            else if(angle>=270&&angle<360) angle=0;
+
+			var scaleX = angle%180===0?PAGE_WIDTH / obj.width:PAGE_WIDTH / obj.height;
+			var scaleY = angle%180===0?PAGE_WIDTH / (obj.height * aspect_):PAGE_WIDTH / (obj.width * aspect);
+
+			var top = (angle == 180)?minHeight:(angle == 270)?minWidth*aspect_:0;
+			var left = (angle == 90 || angle == 180)?minWidth:0;
+			obj.set({
+				angle: angle,
+				top: top,
+				left: left,
+				scaleX: scaleX,
+				scaleY: scaleY,
+			});
+
+			obj.setCoords();
+			this.canvas.renderAll();
+			this.canvas.calcOffset();
+		}
+	}
+}));
+Vue.component('button-invert', Vue.extend({
+	template: `
+		<el-button @click="handleInvertBtnClick">Invert</el-button>
+	`,
+	props: ['canvas'],
+	methods: {
+		handleInvertBtnClick: function(){
+			var activeObjects = this.canvas.getActiveObjects();
+			if(activeObjects[0] && activeObjects[0].type == 'i-text') {
+				let color = activeObjects[0].backgroundColor == '#fff' ? '#fff' : '#000';
+				let backgroundColor = color == '#fff' ? '#000' : '#fff';
+				activeObjects[0].set({'backgroundColor': backgroundColor, 'fill': color});
+			}
+			this.canvas.renderAll();
+		}
+	}
+}));
+Vue.component('slider-zoom', Vue.extend({
+	template: `
+		<el-slider
+			v-model="zoom"
+			:min="MIN_ZOOM"
+			:max="MAX_ZOOM"
+			:step="0.1"
+			@change="handleScaleChange">
+		</el-slider>	
+	`,
+	props: ['canvas', 'zoom'],
+	methods: {
+		handleScaleChange: function(value){
+			window.localStorage.setItem('zoom', this.zoom);
+			let center = this.canvas.getCenter();
+			this.canvas.zoomToPoint({ x: center.left, y: center.top }, this.zoom);
+		}
+	}
+}));
+
+
 var app = new Vue({
 	el: '#app',
 	data: {
-		pageWidth: 384,
+		canvas: null,
+		pageWidth: PAGE_WIDTH,
 		pageHeight: 800,
 		zoom: 1,
-		maxZoom: 2,
-		minZoom: 0.1,
 		activeObjects: [],
 		imageDialogVisible: false,
 		threshold: 127,
@@ -241,6 +399,7 @@ var app = new Vue({
 		printingDialogVisible: false,
 		printingComplete: true,
 		controlsOpen: false,
+		printmode: 'standard',
 
 		/* i-text props */
 		textValue: 'Hi there',
@@ -280,6 +439,8 @@ var app = new Vue({
         printBreakTime: PRINTER.printBreakTime,
 	},
 	methods: {
+		handlePrintModeTabClick: function(tab, event){
+		},
 		handleImageChange: function(e){
 			console.log('change', e);
 		},
@@ -390,58 +551,6 @@ var app = new Vue({
 			this.imageDialogVisible = false;
 			upload.clearFiles();
 		},
-		handleUpBtnClick: function(){
-			var activeObjects = this.canvas.getActiveObjects();
-			activeObjects.forEach(object => {
-				if(object.lockMovementY) return;
-				let left = object.left;
-				let top = object.top;
-				object.set({
-					left: left, 
-					top: top - 1
-				});
-			});
-			this.canvas.renderAll();
-		},
-		handleDownBtnClick: function(){
-			var activeObjects = this.canvas.getActiveObjects();
-			activeObjects.forEach(object => {
-				if(object.lockMovementY) return;
-				let left = object.left;
-				let top = object.top;
-				object.set({
-					left: left, 
-					top: top + 1
-				});
-			});
-			this.canvas.renderAll();
-		},
-		handleLeftBtnClick: function(){
-			var activeObjects = this.canvas.getActiveObjects();
-			activeObjects.forEach(object => {
-				if(object.lockMovementX) return;
-				let left = object.left;
-				let top = object.top;
-				object.set({
-					left: left - 1, 
-					top: top
-				});
-			});
-			this.canvas.renderAll();
-		},
-		handleRightBtnClick: function(){
-			var activeObjects = this.canvas.getActiveObjects();
-			activeObjects.forEach(object => {
-				if(object.lockMovementX) return;
-				let left = object.left;
-				let top = object.top;
-				object.set({
-					left: left + 1, 
-					top: top
-				});
-			});
-			this.canvas.renderAll();
-		},
 		handleRemoveBtnClick: function(){
 			/*Remove selected item(s)*/
 			var activeObjects = this.canvas.getActiveObjects();
@@ -459,50 +568,6 @@ var app = new Vue({
 			window.localStorage.setItem('fontFamily', this.fontFamily);
 			this.activeObjects[0] && this.activeObjects[0].type == 'i-text' && this.activeObjects[0].set({'fontFamily': this.fontFamily});
 			this.canvas.renderAll();
-		},
-		handleInvertBtnClick: function(){
-			if(this.activeObjects[0] && this.activeObjects[0].type == 'i-text') {
-				let color = this.activeObjects[0].backgroundColor == '#fff' ? '#fff' : '#000';
-				let backgroundColor = color == '#fff' ? '#000' : '#fff';
-				this.activeObjects[0].set({'backgroundColor': backgroundColor, 'fill': color});
-			}
-			this.canvas.renderAll();
-		},
-		handleRotateBtnClick: function(){
-			var obj = this.canvas.getActiveObject();
-			if(!obj) return;
-			if(obj.lockRotation) return;
-
-            var ctx = this.canvas.contextContainer,
-                imgWidth = obj.width,
-                imgHeight = obj.height,
-                aspect = imgHeight / imgWidth,
-                aspect_ = imgWidth / imgHeight,
-                minWidth = this.pageWidth,
-                minHeight = minWidth * aspect;
-
-            let angle = obj.get('angle');
-            if(angle>=0&&angle<90) angle=90;
-            else if(angle>=90&&angle<180) angle=180;
-            else if(angle>=180&&angle<270) angle=270;
-            else if(angle>=270&&angle<360) angle=0;
-
-			var scaleX = angle%180===0?this.pageWidth / obj.width:this.pageWidth / obj.height;
-			var scaleY = angle%180===0?this.pageWidth / (obj.height * aspect_):this.pageWidth / (obj.width * aspect);
-
-			var top = (angle == 180)?minHeight:(angle == 270)?minWidth*aspect_:0;
-			var left = (angle == 90 || angle == 180)?minWidth:0;
-			obj.set({
-				angle: angle,
-				top: top,
-				left: left,
-				scaleX: scaleX,
-				scaleY: scaleY,
-			});
-
-			obj.setCoords();
-			this.canvas.renderAll();
-			this.canvas.calcOffset();
 		},
 		postRender: function(){
 			if(this.canvas.isDragging) return;
@@ -562,14 +627,6 @@ var app = new Vue({
 		handlePrintBtnClick: function(e){
 			e.preventDefault();
 			this.print();
-		},
-		handleScaleChange: function(value){
-			window.localStorage.setItem('zoom', this.zoom);
-			let center = this.canvas.getCenter();
-			//console.log(center);
-			this.canvas.zoomToPoint({ x: center.left, y: center.top }, this.zoom);
-			//this.canvas.setZoom(this.zoom);
-			//this.canvas.absolutePan(new fabric.Point(this.vx, this.vy));
 		},
 		handlePrintDialogCancel: function(){
 			this.printStatus = PRINT_STATUS.IDLE;
@@ -845,11 +902,11 @@ var app = new Vue({
 			}
 			let zoom = firstzoom * scale;
 
-			if(zoom < this.minZoom) {
-				zoom = this.minZoom;
+			if(zoom < MIN_ZOOM) {
+				zoom = MIN_ZOOM;
 			}
-			if(zoom > this.maxZoom){
-				this.zoom = this.maxZoom;
+			if(zoom > MAX_ZOOM){
+				this.zoom = MAX_ZOOM;
 			}
 			this.zoom = zoom;
 
@@ -952,13 +1009,13 @@ var app = new Vue({
 				//Zoom when Ctrl + Alt are pressed
 				var pointer = this.canvas.getPointer(e, true);
 				this.zoom = this.canvas.getZoom();
-				if(e.deltaY >= this.minZoom) {
+				if(e.deltaY >= MIN_ZOOM) {
 					this.zoom -= 0.1;
-					this.zoom = Math.max(this.zoom, this.minZoom);
+					this.zoom = Math.max(this.zoom, MIN_ZOOM);
 				}
 				else {
 					this.zoom += 0.1;
-					this.zoom = Math.min(this.zoom, this.maxZoom);
+					this.zoom = Math.min(this.zoom, MAX_ZOOM);
 				}
 				window.localStorage.setItem('zoom', this.zoom);
 				this.canvas.zoomToPoint({ x: e.offsetX, y: e.offsetY }, this.zoom);
