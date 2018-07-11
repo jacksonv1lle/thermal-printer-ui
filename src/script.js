@@ -74,12 +74,12 @@ function applyFloydSteinberg(data) {
         }
     return data;
 }
-function applyBayerMatrix(data, n){
+function applyBayerMatrix(data, n, t){
 	var buffer = data.data,
         len = buffer.length,
         w = data.width * 4,
         h = data.height;
-    let unit = 1 / (n*n+1);
+    let unit = t / 256;
     let matrix = [];
     switch(n){
     	case 3:
@@ -109,6 +109,8 @@ function applyBayerMatrix(data, n){
 			let lum = buffer[ci] * 0.3 + buffer[ci + 1] * 0.59 + buffer[ci + 2] * 0.11;
 			let threshold = matrix[(x/4)%n][y%n];
 			threshold = (threshold+1) * unit * 255;
+			if(y==0)console.log('threshold: ', threshold);
+			if(y==0)console.log('unit: ', unit);
 			lum = lum < threshold ? 0 : 256;
 			buffer[ci] = lum;
 			buffer[ci + 1] = lum;
@@ -315,7 +317,7 @@ var app = new Vue({
 				borderColor: handleColor,
 				cornerColor: handleColor,
 				transparentCorners: false,
-			})
+			});
 			iText.setControlsVisibility({
 				mt: false, 
 				mb: false, /* Only allow rect to be scaled from the bottom */
@@ -505,10 +507,11 @@ var app = new Vue({
 			this.canvas.calcOffset();
 		},
 		postRender: function(){
+			console.log('post render');
 			if(this.canvas.isDragging) return;
 			var data = this.getPageData();
 			if(this.filter == '1') data = applyFloydSteinberg(data);
-			if(this.filter == '2') data = applyBayerMatrix(data, parseInt(this.bayerSize));
+			if(this.filter == '2') data = applyBayerMatrix(data, parseInt(this.bayerSize), this.threshold);
 			if(this.filter == '3') data = applyGreyScale(data, this.threshold);
 			var ctx = this.canvas.contextContainer;
 			var center = center = new fabric.Point(this.canvas.viewportTransform[4], this.canvas.viewportTransform[5]);
@@ -750,7 +753,7 @@ var app = new Vue({
 			this.discardActiveObject();
 			this.requestRenderAll();
 			this.isEnabled = false;
-	    }
+	    };
 	    fabric.Canvas.prototype.enable = function() {
 			console.log('enable');
 	    	this.set({'selection': true});
@@ -758,7 +761,7 @@ var app = new Vue({
 				o.selectable = true;
 			});
 			this.isEnabled = true;
-	    }
+	    };
 
 		window.addEventListener('keydown', e => {
 			
