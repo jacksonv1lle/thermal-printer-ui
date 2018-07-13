@@ -74,12 +74,12 @@ function applyFloydSteinberg(data) {
         }
     return data;
 }
-function applyBayerMatrix(data, n, t){
+function applyBayerMatrix(data, n){
 	var buffer = data.data,
         len = buffer.length,
         w = data.width * 4,
         h = data.height;
-    let unit = t / 255;
+    let unit = 1 / (n*n+1);
     let matrix = [];
     switch(n){
     	case 3:
@@ -519,7 +519,7 @@ var app = new Vue({
 			if(this.canvas.isDragging) return;
 			var data = this.getPageData();
 			if(this.filter == '1') data = applyFloydSteinberg(data);
-			if(this.filter == '2') data = applyBayerMatrix(data, parseInt(this.bayerSize), this.threshold);
+			if(this.filter == '2') data = applyBayerMatrix(data, parseInt(this.bayerSize));
 			if(this.filter == '3') data = applyGreyScale(data, this.threshold);
 			var ctx = this.canvas.contextContainer;
 			var center = center = new fabric.Point(this.canvas.viewportTransform[4], this.canvas.viewportTransform[5]);
