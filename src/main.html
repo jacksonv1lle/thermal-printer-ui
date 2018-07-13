@@ -231,6 +231,28 @@
 						</template>
 					</span>
 				</el-dialog>
+				<el-dialog
+					title="Out of paper :("
+					:visible.sync="noPaperDialogVisible"
+					:close-on-click-modal="false"
+					:close-on-press-escape="false"
+					:show-close="false">
+					<p>Please insert a new paper roll.</p>
+					<span slot="footer" class="dialog-footer">
+						<el-button type="primary" @click="handleNoPaperDialogCancel">Dismiss</el-button>
+					</span>
+				</el-dialog>
+				<el-dialog
+					title="A problem has occured"
+					:visible.sync="failureDialogVisible"
+					:close-on-click-modal="false"
+					:close-on-press-escape="false"
+					:show-close="false">
+					<p>FAIL</p>
+					<span slot="footer" class="dialog-footer">
+						<el-button type="primary" @click="handleFailureDialogCancel">Dismiss</el-button>
+					</span>
+				</el-dialog>
 			</div>
 		</div>
 	</div>

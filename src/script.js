@@ -79,7 +79,7 @@ function applyBayerMatrix(data, n, t){
         len = buffer.length,
         w = data.width * 4,
         h = data.height;
-    let unit = t / 256;
+    let unit = t / 255;
     let matrix = [];
     switch(n){
     	case 3:
@@ -109,8 +109,6 @@ function applyBayerMatrix(data, n, t){
 			let lum = buffer[ci] * 0.3 + buffer[ci + 1] * 0.59 + buffer[ci + 2] * 0.11;
 			let threshold = matrix[(x/4)%n][y%n];
 			threshold = (threshold+1) * unit * 255;
-			if(y==0)console.log('threshold: ', threshold);
-			if(y==0)console.log('unit: ', unit);
 			lum = lum < threshold ? 0 : 256;
 			buffer[ci] = lum;
 			buffer[ci + 1] = lum;
@@ -127,8 +125,16 @@ function sendData(data) {
 		var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
 		xhr.open('POST', '/print');
 		xhr.onreadystatechange = function() {
-			if (xhr.readyState > 3 && xhr.status == 200) resolve(xhr.responseText);
-			if (xhr.readyState > 3 && xhr.status == 400) reject(xhr.responseText);
+			if(xhr.readyState > 3) {
+				switch(xhr.status) {
+					case 200:
+						resolve(xhr.responseText);
+						break;
+					default:
+						reject(xhr.responseText);
+						break;
+				}	
+			}
 		};
 		xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 		xhr.send(formData);
@@ -235,6 +241,8 @@ var app = new Vue({
 		minZoom: 0.1,
 		activeObjects: [],
 		imageDialogVisible: false,
+		noPaperDialogVisible: false,
+		failureDialogVisible: false,
 		threshold: 127,
 		filter: '1',
 		bayerSize: '2',
@@ -574,10 +582,19 @@ var app = new Vue({
 			//this.canvas.setZoom(this.zoom);
 			//this.canvas.absolutePan(new fabric.Point(this.vx, this.vy));
 		},
-		handlePrintDialogCancel: function(){
+		closePrinterDialog: function(){
 			this.printStatus = PRINT_STATUS.IDLE;
 			this.printProgress = 0;
 			this.printingDialogVisible = false;
+		},
+		handlePrintDialogCancel: function(){
+			this.closePrinterDialog();
+		},
+		handleNoPaperDialogCancel: function(){
+			this.noPaperDialogVisible = false;
+		},
+		handleFailureDialogCancel: function(){
+			this.failureDialogVisible = false;
 		},
 		print: function(){
 			//this.canvas.discardActiveObject();
@@ -615,11 +632,22 @@ var app = new Vue({
 						return;
 					}
 					try {
-						console.log(chunks[i]);
 						var res = await sendData(Array.from(chunks[i]));
 						printChunk(i + 1);
 					} catch (e) {
-						console.log('There was a problem', e);
+						console.log('There was a problem: ', e);
+						var res = JSON.parse(e);
+						switch(res.code) {
+							case 503:
+								this.closePrinterDialog();
+								this.noPaperDialogVisible = true;
+								break;
+							case 400:
+							default:
+								this.closePrinterDialog();
+								this.failureDialogVisible = true;
+								break;
+						}
 					}
 				};
 				printChunk(0);
