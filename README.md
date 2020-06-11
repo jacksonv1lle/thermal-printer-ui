@@ -1,2 +1,2 @@
 # thermal-printer-ui
-Client-side thermal printer page UI with Fabric.js
+Client-side thermal printer interface using VueJS and Element UI component library
